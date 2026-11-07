@@ -56,13 +56,15 @@ public sealed class FakeProviderServer : IAsyncDisposable
                 user == options.Username && password == options.Password ? Stream(options, kind) : Results.StatusCode(401));
         }
         var art = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>(StringComparer.Ordinal);
-        app.MapGet("/art/{kind}/{name}", (string kind, string name) =>
+        app.MapGet("/art/{kind}/{name}", (string kind, string name, int? w) =>
         {
             // A movie's poster and backdrop share a scene: the seed is the name, the kind only sets the shape.
-            var image = art.GetOrAdd($"{kind}/{name}", _ => kind switch
+            // ?w= (backdrops only, up to 3840) renders a larger scene, e.g. for the showcase videos.
+            var width = Math.Clamp(w ?? 1280, 320, 3840);
+            var image = art.GetOrAdd($"{kind}/{name}/{width}", _ => kind switch
             {
                 "logo" => PngArt.Logo(name, 320, 200),
-                "backdrop" => PngArt.Scene(name, 1280, 720),
+                "backdrop" => PngArt.Scene(name, width, width * 9 / 16),
                 "still" => PngArt.Scene(name, 480, 270),
                 _ => PngArt.Scene(name, 400, 600),
             });

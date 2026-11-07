@@ -14,18 +14,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$ffmpeg = $null
-$onPath = Get-Command ffmpeg -ErrorAction SilentlyContinue
-if ($onPath) { $ffmpeg = $onPath.Source }
-if (-not $ffmpeg) {
-    # A winget install updates PATH only for shells started afterwards; find it directly.
-    $packages = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
-    $found = Get-ChildItem -Path $packages -Directory -Filter 'Gyan.FFmpeg*' -ErrorAction SilentlyContinue |
-        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -Filter 'ffmpeg.exe' } |
-        Select-Object -First 1
-    if ($found) { $ffmpeg = $found.FullName }
-}
-if (-not $ffmpeg) { throw 'FFmpeg not found. Install it with: winget install Gyan.FFmpeg' }
+$ffmpeg = & (Join-Path $PSScriptRoot 'find-ffmpeg.ps1')
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $repoRoot 'tests\fixtures\media'

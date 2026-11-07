@@ -50,7 +50,7 @@ public partial class App : Application
             return;
         }
 
-        _container.MuteOnStart = dev.Mute;
+        _container.Silent = dev.Mute;
         var window = new MainWindow(_container) { ShowActivated = !dev.NoActivate };
         dev.ApplyBounds(window);
         MainWindow = window;
@@ -59,6 +59,12 @@ public partial class App : Application
         if (dev is { PerfReport: { } report, DemoProvider: { } provider })
         {
             await PerfProbe.RunAsync(_container, window, provider, report).ConfigureAwait(true);
+            return;
+        }
+
+        if (dev is { TourFolder: { } tour, DemoProvider: { } tourProvider })
+        {
+            await ScreenshotTour.RunAsync(_container, window, tourProvider, tour).ConfigureAwait(true);
             return;
         }
 

@@ -10,10 +10,11 @@ namespace Retune.App.Dev;
 /// <c>--no-activate</c>, <c>--window x,y,w,h</c> (physical pixels), and
 /// <c>--render &lt;folder&gt; --demo &lt;provider url&gt;</c> to save screenshots off-screen without showing any window.
 /// </summary>
-/// <param name="Mute">Start the player muted (unattended runs must never make sound).</param>
+/// <param name="Mute">No audio device at all (unattended runs must never make sound).</param>
 /// <param name="AutoPlay">Play the first visible item once the demo playlist has loaded.</param>
+/// <param name="TourFolder">With <c>--demo</c>: run <see cref="ScreenshotTour"/> and save the screenshots here.</param>
 /// <param name="PerfReport">With <c>--demo</c>: run <see cref="PerfProbe"/> and write its report here.</param>
-public sealed record DevOptions(bool NoActivate, (int X, int Y, int Width, int Height)? WindowBounds, string? RenderFolder, string? DemoProvider, bool Mute = false, bool AutoPlay = false, string? PerfReport = null)
+public sealed record DevOptions(bool NoActivate, (int X, int Y, int Width, int Height)? WindowBounds, string? RenderFolder, string? DemoProvider, bool Mute = false, bool AutoPlay = false, string? PerfReport = null, string? TourFolder = null)
 {
     public static DevOptions Parse(IReadOnlyList<string> args)
     {
@@ -34,7 +35,7 @@ public sealed record DevOptions(bool NoActivate, (int X, int Y, int Width, int H
         var bounds = ValueAfter("--window")?.Split(',') is { Length: 4 } p
             ? (int.Parse(p[0], CultureInfo.InvariantCulture), int.Parse(p[1], CultureInfo.InvariantCulture), int.Parse(p[2], CultureInfo.InvariantCulture), int.Parse(p[3], CultureInfo.InvariantCulture))
             : ((int, int, int, int)?)null;
-        return new DevOptions(args.Contains("--no-activate"), bounds, ValueAfter("--render"), ValueAfter("--demo"), args.Contains("--mute"), args.Contains("--autoplay"), ValueAfter("--perf"));
+        return new DevOptions(args.Contains("--no-activate"), bounds, ValueAfter("--render"), ValueAfter("--demo"), args.Contains("--mute"), args.Contains("--autoplay"), ValueAfter("--perf"), ValueAfter("--tour"));
     }
 
     public void ApplyBounds(Window window)

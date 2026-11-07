@@ -83,8 +83,8 @@ public sealed class AppContainer : IDisposable
 
     public PlayerViewModel? PlayerModel { get; private set; }
 
-    /// <summary>Dev runs: mute before anything can play.</summary>
-    public bool MuteOnStart { get; set; }
+    /// <summary>Dev runs: no audio device at all, so nothing can be heard (the UI still shows the real volume).</summary>
+    public bool Silent { get; set; }
 
     private MpvClient? _mpv;
     private MpvEngine? _engine;
@@ -99,13 +99,8 @@ public sealed class AppContainer : IDisposable
         ArgumentNullException.ThrowIfNull(dispatcher);
         void Post(Action action) => dispatcher.BeginInvoke(action);
         var volume = (int)Core.Playback.VolumeLevel.Clamped(Settings.Current.Volume);
-        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)"), logLevel: null);
+        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent), logLevel: null);
         _engine = new MpvEngine(_mpv, Post);
-        if (MuteOnStart)
-        {
-            _engine.SetMuted(true);
-        }
-
         _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(Library, Playlists), Time, Post);
         PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Settings, new KeepAwake(), Time, Post);
         Player.Attach(PlayerModel);

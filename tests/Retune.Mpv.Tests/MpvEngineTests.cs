@@ -16,7 +16,7 @@ public sealed class MpvEngineTests : IDisposable
 
     public MpvEngineTests()
     {
-        var options = MpvOptions.ForEmbeddedPlayer(null, 100, "Retune-Tests/1.0").Append(new("ao", "null"));
+        var options = MpvOptions.ForEmbeddedPlayer(null, 100, "Retune-Tests/1.0", silent: true);
         _mpv = MpvClient.Create(options, logLevel: null);
         _engine = _ui.Invoke(() => new MpvEngine(_mpv, _ui.Post));
         _session = _ui.Invoke(() => new PlaybackSession(_engine, _observer, TimeProvider.System, _ui.Post));

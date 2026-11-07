@@ -15,8 +15,7 @@ internal sealed class HeadlessPlayer : IDisposable
 
     public HeadlessPlayer(params KeyValuePair<string, string>[] extraOptions)
     {
-        var options = MpvOptions.ForEmbeddedPlayer(windowHandle: null, volume: 100, userAgent: "Retune-Tests/1.0")
-            .Append(new("ao", "null"))
+        var options = MpvOptions.ForEmbeddedPlayer(windowHandle: null, volume: 100, userAgent: "Retune-Tests/1.0", silent: true)
             .Concat(extraOptions);
         Client = MpvClient.Create(options, logLevel: null);
         Client.EventReceived += OnEvent;

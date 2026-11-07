@@ -19,7 +19,8 @@ public static class MpvOptions
 
     /// <summary>Builds the full option list for a player that renders into <paramref name="windowHandle"/>.</summary>
     /// <param name="windowHandle">Child window mpv renders into, or null for audio/headless use (tests).</param>
-    public static IReadOnlyList<KeyValuePair<string, string>> ForEmbeddedPlayer(nint? windowHandle, int volume, string userAgent)
+    /// <param name="silent">No audio device at all (unattended dev runs): nothing can ever be heard.</param>
+    public static IReadOnlyList<KeyValuePair<string, string>> ForEmbeddedPlayer(nint? windowHandle, int volume, string userAgent, bool silent = false)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(volume, 0);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(volume, 100);
@@ -56,6 +57,11 @@ public static class MpvOptions
             new("demuxer-lavf-analyzeduration", "3"),
             new("user-agent", userAgent),
         };
+
+        if (silent)
+        {
+            options.Add(new("ao", "null"));
+        }
 
         if (windowHandle is { } hwnd)
         {
