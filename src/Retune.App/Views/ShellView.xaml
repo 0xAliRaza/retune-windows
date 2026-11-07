@@ -27,7 +27,8 @@
             <TextBlock Margin="0,3,0,0" Style="{StaticResource Caption}" FontSize="11" Text="{Binding Playlists.Account.ExpiresAt, StringFormat=Expires {0:d MMM yyyy}}" Visibility="{Binding Playlists.Account.ExpiresAt, Converter={StaticResource HasValueToVisibility}}" />
             <TextBlock Style="{StaticResource Caption}" FontSize="11" Text="{Binding Playlists.Account.MaxConnections, StringFormat={}{0} connection(s) allowed}" Visibility="{Binding Playlists.Account.MaxConnections, Converter={StaticResource HasValueToVisibility}}" />
           </StackPanel>
-          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding AddPlaylistCommand}" Icon="{ui:SymbolIcon AddCircle24}" Content="Add Playlist" />
+          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding AddPlaylistCommand}" Icon="{ui:SymbolIcon AddCircle24}" Content="Add Playlist" ToolTip="Add a playlist (Ctrl+N)" />
+          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding OpenSettingsCommand}" Icon="{ui:SymbolIcon Settings24}" Content="Settings" ToolTip="Settings (Ctrl+,)" />
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Top" Margin="18,14,12,6" Orientation="Horizontal">
@@ -107,7 +108,7 @@
             <TextBlock Style="{StaticResource ColumnTitle}" Text="{Binding Categories.SectionTitle}" />
             <ui:TextBox Margin="0,12,0,0" PlaceholderText="Filter categories" Icon="{ui:SymbolIcon Filter24}" Text="{Binding Categories.FilterText, UpdateSourceTrigger=PropertyChanged}" />
           </StackPanel>
-          <Button DockPanel.Dock="Bottom" Margin="6,4,6,12" Style="{StaticResource NavRow}" Visibility="{Binding Categories.HiddenCount, Converter={StaticResource HasValueToVisibility}}" ToolTip="Manage hidden categories in Settings">
+          <Button DockPanel.Dock="Bottom" Margin="6,4,6,12" Style="{StaticResource NavRow}" Command="{Binding OpenSettingsCommand}" Visibility="{Binding Categories.HiddenCount, Converter={StaticResource HasValueToVisibility}}" ToolTip="Manage hidden categories in Settings">
             <StackPanel Orientation="Horizontal">
               <ui:SymbolIcon Symbol="EyeOff16" FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
               <TextBlock Margin="8,0,0,0" Style="{StaticResource Caption}" Text="{Binding Categories.HiddenCount, StringFormat={}{0} hidden}" />
@@ -169,6 +170,11 @@
             <DataTemplate DataType="{x:Type vm:SeriesDetailViewModel}"><v:SeriesDetailView /></DataTemplate>
           </ContentControl.Resources>
         </ContentControl>
+      </Grid>
+
+      <!-- settings page, in place of the categories and content -->
+      <Grid Grid.Column="1" Grid.ColumnSpan="2" Background="{DynamicResource ApplicationBackgroundBrush}" Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVisibility}}">
+        <v:SettingsView DataContext="{Binding SettingsPage}" />
       </Grid>
     </Grid>
 

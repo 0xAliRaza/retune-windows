@@ -49,10 +49,13 @@ public sealed class AppContainer : IDisposable
         Dialogs = new WpfDialogs(this);
         Player = new PlayerLauncher();
         Playlists.ActivePlaylistChanging += (_, _) => Player.StopForPlaylistChange();
-        Shell = new ShellViewModel(Playlists, Library, Settings, Dialogs, Player, Time, Post);
+        Shell = new ShellViewModel(Playlists, Library, Settings, Dialogs, Player, Time, Post, () => new SettingsViewModel(Settings, Library, Playlists, Dialogs, ClearArtworkInBackground));
     }
 
     public AppPaths Paths { get; }
+
+    /// <summary>Deleting thousands of cached files must not freeze the window.</summary>
+    private void ClearArtworkInBackground() => _ = Task.Run(Artwork.Clear);
 
     public TimeProvider Time { get; }
 

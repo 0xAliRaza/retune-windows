@@ -18,6 +18,9 @@ public interface IDialogs
     /// <summary>Lets the user create a PIN; returns true when one was set.</summary>
     Task<bool> CreatePinAsync();
 
+    /// <summary>The Keyboard Shortcuts sheet.</summary>
+    Task ShowShortcutsAsync();
+
     void OpenInBrowser(Uri url);
 }
 

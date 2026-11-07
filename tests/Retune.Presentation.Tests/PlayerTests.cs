@@ -121,6 +121,29 @@ public sealed class PlayerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Esc_closes_the_shortcuts_panel_before_the_player_and_it_keeps_the_controls_up()
+    {
+        _player.Play(Channels());
+        FirstFrame();
+        _player.ToggleShortcuts();
+
+        _app.Time.Advance(TimeSpan.FromSeconds(10));
+        Assert.True(_player.ControlsVisible);
+
+        _player.Escape();
+        Assert.False(_player.ShortcutsVisible);
+        Assert.True(_player.IsPresented);
+    }
+
+    [Fact]
+    public void Turning_autoplay_off_in_settings_reaches_the_running_player()
+    {
+        _app.SettingsService.Update(s => s with { AutoplayNext = false });
+
+        Assert.False(_session.AutoplayEnabled);
+    }
+
+    [Fact]
     public void Opening_the_player_never_unmutes()
     {
         var engine = new FakeEngine();

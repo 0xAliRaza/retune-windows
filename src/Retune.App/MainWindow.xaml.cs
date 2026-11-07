@@ -143,6 +143,10 @@ public partial class MainWindow : FluentWindow
             case Key.I: p.ToggleStats(); break;
             case Key.S: _ = p.ScreenshotAsync(); break;
             case Key.Enter: p.CommitNumber(); break;
+            case Key.F1:
+            case Key.OemQuestion when shift:
+                p.ToggleShortcuts();
+                break;
             case Key.Escape: p.Escape(); break;
             case >= Key.D0 and <= Key.D9 when !shift: p.Digit(key - Key.D0); break;
             case >= Key.NumPad0 and <= Key.NumPad9: p.Digit(key - Key.NumPad0); break;
@@ -176,7 +180,13 @@ public partial class MainWindow : FluentWindow
                 break;
             case Key.N when ctrl: _ = Shell.AddPlaylistAsync(); break;
             case Key.L when ctrl: Shell.LockAll(); break;
+            case Key.OemComma when ctrl && !playing: Shell.OpenSettings(); break;
             case Key.F11: ToggleFullScreen(); break;
+            case Key.F1:
+            case Key.OemQuestion when ctrl:
+            case Key.OemQuestion when shift && !typing:
+                ShowShortcuts();
+                break;
             case Key.Left when alt && !playing:
             case Key.Back when !typing && !playing && Shell.CanGoBack:
             case Key.Escape when !typing && !playing && Shell.CanGoBack:
@@ -187,6 +197,19 @@ public partial class MainWindow : FluentWindow
         }
 
         return true;
+    }
+
+    /// <summary>The sheet goes in the player's overlay while it is up (a dialog would sit under the video).</summary>
+    private void ShowShortcuts()
+    {
+        if (_player?.IsPresented == true)
+        {
+            _player.ToggleShortcuts();
+        }
+        else
+        {
+            _ = Container.Dialogs.ShowShortcutsAsync();
+        }
     }
 
     /// <summary>The mouse's Back button leaves a detail page.</summary>

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:c="clr-namespace:Retune.App.Controls"
+    xmlns:v="clr-namespace:Retune.App.Views"
     xmlns:p="clr-namespace:Retune.Presentation.Player;assembly=Retune.Presentation"
     x:Name="Root"
     FontFamily="{StaticResource AppFont}"
@@ -243,6 +244,17 @@
           </StackPanel>
         </StackPanel>
       </DockPanel>
+    </Border>
+
+    <!-- ================================ keyboard shortcuts (?, F1, Ctrl+/) -->
+    <Border Padding="26" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="20" Visibility="{Binding ShortcutsVisible, Converter={StaticResource BoolToVisibility}}">
+      <StackPanel>
+        <DockPanel Margin="0,0,0,18">
+          <ui:Button DockPanel.Dock="Right" Appearance="Primary" Content="Done" Focusable="False" Command="{Binding ToggleShortcutsCommand}" />
+          <TextBlock VerticalAlignment="Center" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="SemiBold" Text="Keyboard Shortcuts" />
+        </DockPanel>
+        <v:ShortcutsSheet />
+      </StackPanel>
     </Border>
 
     <!-- ================================ OSD flash and number entry -->

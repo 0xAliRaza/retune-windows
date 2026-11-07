@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -15,8 +16,7 @@ namespace Retune.App.Dev;
 /// </summary>
 internal static class DevRenderer
 {
-    private const int Width = 1600;
-    private const int Height = 1000;
+    private static readonly Size Page = new(1600, 1000);
 
     public static async Task RunAsync(AppContainer app, DevOptions options, string folder)
     {
@@ -62,6 +62,14 @@ internal static class DevRenderer
             app.Shell.SearchText = "midnight";
             await Snap(shell, Path.Combine(folder, "8-search.png"), settle: 1500).ConfigureAwait(true);
 
+            await Snap(Dialog(shell, new Dialogs.ShortcutsDialog(_ => { })), Path.Combine(folder, "9-shortcuts.png")).ConfigureAwait(true);
+            app.Shell.SearchText = string.Empty;
+            var hidden = app.Playlists.Index!.Catalog.CategoriesFor(LibrarySection.Movies)[1].Id;
+            app.Library.Update(s => Core.Library.LibraryOperations.ToggleHidden(s, Core.Library.LibraryKeys.Category(playlist.Id, LibrarySection.Movies, hidden)));
+            app.Shell.OpenSettings();
+            await Snap(shell, Path.Combine(folder, "10-settings.png"), settle: 1000).ConfigureAwait(true);
+            app.Shell.CloseSettings();
+
             await PlayerPreview.RenderAsync(app, folder).ConfigureAwait(true);
         }
         finally
@@ -70,19 +78,41 @@ internal static class DevRenderer
         }
     }
 
-    private static async Task Snap(FrameworkElement element, string path, int settle = 300)
+    /// <summary>A dialog card over a dimmed copy of the page, as the main window's dialog layer draws it.</summary>
+    private static Grid Dialog(FrameworkElement page, FrameworkElement dialog)
+    {
+        var card = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = (Brush)Application.Current.FindResource("SolidBackgroundFillColorTertiaryBrush"),
+            BorderBrush = (Brush)Application.Current.FindResource("SurfaceStrokeColorDefaultBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Child = dialog,
+        };
+        var root = new Grid { Background = new VisualBrush(page) };
+        root.Children.Add(new Border { Background = new SolidColorBrush(Color.FromArgb(0x99, 0, 0, 0)) });
+        root.Children.Add(card);
+        return root;
+    }
+
+    private static Task Snap(FrameworkElement element, string path, int settle = 300) => Snap(element, path, Page, settle);
+
+    /// <summary>Lays <paramref name="element"/> out at <paramref name="size"/>, lets bindings and images settle, then saves it as a PNG.</summary>
+    internal static async Task Snap(FrameworkElement element, string path, Size size, int settle)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(settle);
         while (DateTime.UtcNow < deadline)
         {
-            element.Measure(new Size(Width, Height));
-            element.Arrange(new Rect(0, 0, Width, Height));
+            element.Measure(size);
+            element.Arrange(new Rect(size));
             element.UpdateLayout();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-            await Task.Delay(100).ConfigureAwait(true);
+            await Task.Delay(50).ConfigureAwait(true);
         }
 
-        var bitmap = new RenderTargetBitmap(Width, Height, 96, 96, PixelFormats.Pbgra32);
+        var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(element);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));

@@ -39,6 +39,8 @@ public sealed class WpfDialogs(AppContainer container) : IDialogs
     public Task<bool> CreatePinAsync() =>
         Show(close => new PinDialog(new CreatePinViewModel(container.Library), close));
 
+    public Task ShowShortcutsAsync() => Show(close => new ShortcutsDialog(close));
+
     public void OpenInBrowser(Uri url)
     {
         ArgumentNullException.ThrowIfNull(url);
@@ -56,11 +58,12 @@ public sealed class WpfDialogs(AppContainer container) : IDialogs
 public sealed class DialogLayer(Grid layer, ContentControl host) : IDialogPresenter
 {
     private TaskCompletionSource<bool>? _open;
+    private Action<bool>? _close;
 
     public Task<bool> ShowAsync(Func<Action<bool>, FrameworkElement> content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        _open?.TrySetResult(false);
+        _close?.Invoke(false);
         var completion = new TaskCompletionSource<bool>();
         _open = completion;
 
@@ -71,11 +74,13 @@ public sealed class DialogLayer(Grid layer, ContentControl host) : IDialogPresen
                 layer.Visibility = Visibility.Collapsed;
                 host.Content = null;
                 _open = null;
+                _close = null;
             }
 
             completion.TrySetResult(result);
         }
 
+        _close = Close;
         host.Content = content(Close);
         layer.Visibility = Visibility.Visible;
         host.Dispatcher.BeginInvoke(() => (host.Content as FrameworkElement)?.MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.First)));
@@ -84,5 +89,6 @@ public sealed class DialogLayer(Grid layer, ContentControl host) : IDialogPresen
 
     public bool IsOpen => _open is not null;
 
-    public void Cancel() => _open?.TrySetResult(false);
+    /// <summary>The backdrop click: closes the open dialog as cancelled.</summary>
+    public void Cancel() => _close?.Invoke(false);
 }

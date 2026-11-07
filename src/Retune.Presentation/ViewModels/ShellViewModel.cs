@@ -35,13 +35,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private readonly IPlayerLauncher _player;
     private readonly TimeProvider _time;
     private readonly Action<Action> _post;
+    private readonly Func<SettingsViewModel> _createSettings;
     private readonly Stack<DetailViewModel> _details = new();
     private readonly HashSet<Guid> _defaultFilterApplied = [];
     private ITimer? _searchTimer;
     private string _appliedSearch = string.Empty;
     private (int Hidden, int Locked, int Pinned, int Unlocked, int Favorites, int Progress, int Recent) _libraryShape;
 
-    public ShellViewModel(PlaylistController playlists, LibraryService library, SettingsService settings, IDialogs dialogs, IPlayerLauncher player, TimeProvider time, Action<Action> post)
+    public ShellViewModel(PlaylistController playlists, LibraryService library, SettingsService settings, IDialogs dialogs, IPlayerLauncher player, TimeProvider time, Action<Action> post, Func<SettingsViewModel> createSettings)
     {
         Playlists = playlists ?? throw new ArgumentNullException(nameof(playlists));
         _library = library ?? throw new ArgumentNullException(nameof(library));
@@ -50,6 +51,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _player = player;
         _time = time;
         _post = post;
+        _createSettings = createSettings ?? throw new ArgumentNullException(nameof(createSettings));
         Content.Layout = Settings.LayoutFor(Section);
         Content.TileSize = Settings.TileSize;
         _libraryShape = Shape(library.State);
@@ -90,7 +92,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public bool HasPlaylists => Playlists.Playlists.Count > 0;
 
-    public bool CanGoBack => Detail is not null;
+    public bool CanGoBack => Detail is not null || SettingsPage is not null;
+
+    /// <summary>The Settings page (gear in the sidebar, Ctrl+,), shown in place of the categories and content.</summary>
+    [ObservableProperty]
+    public partial SettingsViewModel? SettingsPage { get; private set; }
+
+    public bool IsSettingsOpen => SettingsPage is not null;
 
     public IReadOnlyList<BrowseSort> SortOptions => Section == LibrarySection.Live
         ? [BrowseSort.Provider, BrowseSort.Title]
@@ -107,6 +115,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _searchTimer?.Dispose();
+        CloseSettings();
         Playlists.PropertyChanged -= OnPlaylistsChanged;
         _library.Changed -= OnLibraryChanged;
         _player.PlayingItemChanged -= OnPlayingChanged;
@@ -122,6 +131,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return;
         }
 
+        CloseSettings();
         Section = section;
         _details.Clear();
         Detail = null;
@@ -139,6 +149,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void SelectCategory(CategoryRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
+        CloseSettings();
         Filter = row.Filter;
         _details.Clear();
         Detail = null;
@@ -148,6 +159,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void Back()
     {
+        if (SettingsPage is not null)
+        {
+            CloseSettings();
+            return;
+        }
+
         if (_details.Count == 0)
         {
             return;
@@ -401,6 +418,22 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     partial void OnDetailChanged(DetailViewModel? value) => OnPropertyChanged(nameof(CanGoBack));
+
+    partial void OnSettingsPageChanged(SettingsViewModel? value)
+    {
+        OnPropertyChanged(nameof(CanGoBack));
+        OnPropertyChanged(nameof(IsSettingsOpen));
+    }
+
+    [RelayCommand]
+    public void OpenSettings() => SettingsPage ??= _createSettings();
+
+    [RelayCommand]
+    public void CloseSettings()
+    {
+        SettingsPage?.Dispose();
+        SettingsPage = null;
+    }
 
     private void ApplySearch()
     {

@@ -24,7 +24,7 @@ internal sealed class AppHarness : IAsyncDisposable
         SettingsService = new SettingsService(Settings, Time);
         var source = new CatalogSource(_fetcher, new LocalFileReader(), Secrets, TimeProvider.System);
         Controller = new PlaylistController(PlaylistStore, Catalogs, Secrets, SettingsService, source, Library, Time);
-        Shell = new ShellViewModel(Controller, Library, SettingsService, Dialogs, Player, Time, action => action());
+        Shell = new ShellViewModel(Controller, Library, SettingsService, Dialogs, Player, Time, action => action(), () => new SettingsViewModel(SettingsService, Library, Controller, Dialogs, () => ArtworkClears++));
         Controller.ActivePlaylistChanging += (_, _) => Player.StopForPlaylistChange();
     }
 
@@ -49,6 +49,8 @@ internal sealed class AppHarness : IAsyncDisposable
     public LibraryService Library { get; }
 
     public SettingsService SettingsService { get; }
+
+    public int ArtworkClears { get; private set; }
 
     public PlaylistController Controller { get; }
 
@@ -163,6 +165,14 @@ internal sealed class FakeDialogs : IDialogs
     public Task<bool> VerifyPinAsync(string reason) => Task.FromResult(PinAnswer);
 
     public Task<bool> CreatePinAsync() => Task.FromResult(PinAnswer);
+
+    public int ShortcutSheets { get; private set; }
+
+    public Task ShowShortcutsAsync()
+    {
+        ShortcutSheets++;
+        return Task.CompletedTask;
+    }
 
     public void OpenInBrowser(Uri url)
     {

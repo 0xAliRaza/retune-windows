@@ -1,0 +1,54 @@
+<UserControl
+    x:Class="Retune.App.Views.ShortcutsSheet"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:nav="clr-namespace:Retune.Core.Navigation;assembly=Retune.Core"
+    AutomationProperties.Name="Keyboard shortcuts">
+  <UserControl.Resources>
+    <Style x:Key="KeyCap" TargetType="Border">
+      <Setter Property="MinWidth" Value="26" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="Padding" Value="7,2" />
+      <Setter Property="Background" Value="#1FFFFFFF" />
+      <Setter Property="BorderBrush" Value="#33FFFFFF" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="5" />
+    </Style>
+
+    <DataTemplate x:Key="ShortcutRow" DataType="{x:Type nav:Shortcut}">
+      <Grid Margin="0,4">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="236" />
+          <ColumnDefinition Width="14" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <ItemsControl HorizontalAlignment="Right" VerticalAlignment="Center" Focusable="False" ItemsSource="{Binding Keys}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Right" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Margin="4,1,0,1" Style="{StaticResource KeyCap}">
+                <TextBlock HorizontalAlignment="Center" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding Action}" TextWrapping="Wrap" />
+      </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ShortcutColumn" DataType="{x:Type nav:ShortcutGroup}">
+      <StackPanel Width="440" Margin="0,0,36,0">
+        <TextBlock Margin="0,0,0,8" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding Title}" />
+        <ItemsControl Focusable="False" ItemsSource="{Binding Shortcuts}" ItemTemplate="{StaticResource ShortcutRow}" />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <ItemsControl Focusable="False" ItemsSource="{x:Static nav:ShortcutCatalog.All}" ItemTemplate="{StaticResource ShortcutColumn}">
+    <ItemsControl.ItemsPanel>
+      <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+    </ItemsControl.ItemsPanel>
+  </ItemsControl>
+</UserControl>

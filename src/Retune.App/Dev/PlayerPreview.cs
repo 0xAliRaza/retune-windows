@@ -2,8 +2,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using Retune.App.Composition;
 using Retune.App.Views;
 using Retune.Core.Models;
@@ -18,8 +16,7 @@ namespace Retune.App.Dev;
 /// </summary>
 internal static class PlayerPreview
 {
-    private const int Width = 1600;
-    private const int Height = 900;
+    private static readonly Size Frame = new(1600, 900);
 
     public static async Task RenderAsync(AppContainer app, string folder)
     {
@@ -46,6 +43,11 @@ internal static class PlayerPreview
         player.Escape();
         player.Escape();
 
+        // The shortcuts panel over the video.
+        player.ToggleShortcuts();
+        await Snap(root, Path.Combine(folder, "p5-shortcuts.png")).ConfigureAwait(true);
+        player.Escape();
+
         // Zapping: the tuning card.
         player.Next();
         await Snap(root, Path.Combine(folder, "p3-tuning.png")).ConfigureAwait(true);
@@ -61,31 +63,13 @@ internal static class PlayerPreview
         player.Close();
     }
 
+    private static Task Snap(FrameworkElement element, string path, int settle = 600) => DevRenderer.Snap(element, path, Frame, settle);
+
     private static LinearGradientBrush FakeVideo()
     {
         var brush = new LinearGradientBrush(Color.FromRgb(40, 70, 110), Color.FromRgb(140, 60, 40), new Point(0, 0), new Point(1, 1));
         brush.Freeze();
         return brush;
-    }
-
-    private static async Task Snap(FrameworkElement element, string path, int settle = 600)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(settle);
-        while (DateTime.UtcNow < deadline)
-        {
-            element.Measure(new Size(Width, Height));
-            element.Arrange(new Rect(0, 0, Width, Height));
-            element.UpdateLayout();
-            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-            await Task.Delay(50).ConfigureAwait(true);
-        }
-
-        var bitmap = new RenderTargetBitmap(Width, Height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(element);
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        await using var file = File.Create(path);
-        encoder.Save(file);
     }
 
     private sealed class StubAwake : IKeepAwake

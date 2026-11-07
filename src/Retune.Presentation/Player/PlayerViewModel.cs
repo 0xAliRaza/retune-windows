@@ -68,6 +68,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _engine.SetVolume(stored.Volume);
         _engine.ApplySubtitleStyle(SubtitleStyle);
 
+        _settings.Changed += OnSettingsChanged;
         _session.StateChanged += (_, _) => OnStateChanged();
         _engine.EventRaised += OnEngineEvent;
         _statsTimer = time.CreateTimer(_ => _post(RefreshStats), null, StatsInterval, StatsInterval);
@@ -103,6 +104,10 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
 
     [ObservableProperty]
     public partial bool StatsVisible { get; private set; }
+
+    /// <summary>The Keyboard Shortcuts panel (?, F1, Ctrl+/). Drawn in the player's overlay so it sits above the video.</summary>
+    [ObservableProperty]
+    public partial bool ShortcutsVisible { get; private set; }
 
     [ObservableProperty]
     public partial IReadOnlyList<StatRow> StatsRows { get; private set; } = [];
@@ -224,6 +229,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         IsPresented = false;
         ListVisible = false;
         StatsVisible = false;
+        ShortcutsVisible = false;
         NumberEntry = null;
         _epg?.Cancel();
         _keepAwake.KeepAwake(false);
@@ -235,7 +241,11 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     /// <summary>Esc: close the list, else the stats, else the player.</summary>
     public void Escape()
     {
-        if (ListVisible)
+        if (ShortcutsVisible)
+        {
+            ShortcutsVisible = false;
+        }
+        else if (ListVisible)
         {
             ListVisible = false;
         }
@@ -407,6 +417,13 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     }
 
     [RelayCommand]
+    public void ToggleShortcuts()
+    {
+        ShortcutsVisible = !ShortcutsVisible;
+        UserActivity();
+    }
+
+    [RelayCommand]
     public void ToggleFullScreen() => FullScreenToggleRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
@@ -500,7 +517,10 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _epg?.Cancel();
         _epg?.Dispose();
         _engine.EventRaised -= OnEngineEvent;
+        _settings.Changed -= OnSettingsChanged;
     }
+
+    private void OnSettingsChanged(object? sender, EventArgs e) => _session.AutoplayEnabled = _settings.Current.AutoplayNext;
 
     partial void OnListFilterChanged(string value) => RebuildList();
 
@@ -508,7 +528,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
 
     private void HideControlsIfIdle()
     {
-        if (!State.Paused && !ListVisible && State.Phase == PlaybackPhase.Playing)
+        if (!State.Paused && !ListVisible && !ShortcutsVisible && State.Phase == PlaybackPhase.Playing)
         {
             ControlsVisible = false;
         }

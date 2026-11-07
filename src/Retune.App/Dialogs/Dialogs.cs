@@ -42,6 +42,13 @@ public partial class ConfirmDialog : DialogBase
     private void OnConfirm(object sender, RoutedEventArgs e) => Close(true);
 }
 
+/// <summary>Keyboard Shortcuts (F1, Ctrl+/, ?). Done or Esc closes it.</summary>
+public partial class ShortcutsDialog : DialogBase
+{
+    public ShortcutsDialog(Action<bool> close)
+        : base(close) => InitializeComponent();
+}
+
 public partial class PlaylistEditorDialog : DialogBase
 {
     public PlaylistEditorDialog(PlaylistEditorViewModel editor, Action<bool> close)
