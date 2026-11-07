@@ -280,6 +280,8 @@
 
   <!-- ================================================================ toolbar -->
   <Style x:Key="ToolbarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+    <!-- icon-only: screen readers read the tooltip -->
+    <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}" />
     <Setter Property="Appearance" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Width" Value="36" />
@@ -288,6 +290,7 @@
   </Style>
 
   <Style x:Key="SegmentButton" TargetType="ToggleButton">
+    <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}" />
     <Setter Property="FocusVisualStyle" Value="{x:Null}" />
     <Setter Property="Width" Value="34" />
     <Setter Property="Height" Value="28" />

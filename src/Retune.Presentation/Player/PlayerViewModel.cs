@@ -153,6 +153,9 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
 
     public bool IsLive => State.IsLive;
 
+    /// <summary>For the system media controls (media keys and the Windows media flyout).</summary>
+    public MediaSessionInfo MediaSession => MediaSessionInfo.From(State, IsPresented, Subtitle);
+
     public bool NoAudio => State.HasVideoFrame && _engine.Tracks.Count > 0 && _engine.Tracks.All(t => t.Type != TrackType.Audio);
 
     public double Position => State.Position;

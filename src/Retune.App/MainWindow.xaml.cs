@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Retune.App.Composition;
 using Retune.App.Services;
 using Retune.App.Windowing;
@@ -20,6 +21,7 @@ public partial class MainWindow : FluentWindow
     private readonly DialogLayer _dialogs;
     private readonly FullScreenController _fullScreen;
     private PlayerViewModel? _player;
+    private SystemMediaControls? _mediaControls;
     private bool _playerEnteredFullScreen;
 
     public MainWindow(AppContainer container)
@@ -37,6 +39,7 @@ public partial class MainWindow : FluentWindow
         Video.VideoWindowCreated += OnVideoWindowCreated;
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewMouseDown += OnMouseBack;
+        Loaded += (_, _) => Controls.TitleBarAccessibility.NameCaptionButtons(AppTitleBar);
     }
 
     public AppContainer Container { get; }
@@ -46,6 +49,8 @@ public partial class MainWindow : FluentWindow
     protected override void OnClosing(CancelEventArgs e)
     {
         // mpv must be destroyed before its window; the final progress is saved first.
+        _mediaControls?.Dispose();
+        _mediaControls = null;
         Container.ShutdownPlayer();
         base.OnClosing(e);
     }
@@ -54,6 +59,7 @@ public partial class MainWindow : FluentWindow
     {
         _player = Container.AttachVideo(Video.VideoWindow, Dispatcher);
         PlayerChrome.DataContext = _player;
+        _mediaControls = SystemMediaControls.TryCreate(new WindowInteropHelper(this).Handle, _player, Dispatcher);
         Video.Width = double.NaN;
         Video.Height = double.NaN;
         Video.HorizontalAlignment = HorizontalAlignment.Stretch;
