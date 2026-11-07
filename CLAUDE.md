@@ -9,6 +9,8 @@ Read `docs/PLAN.md` first. Feature behaviour is defined by `docs/spec/core.md` a
 ./tools/make-test-media.ps1       # once
 dotnet build Retune.slnx          # warnings are errors
 dotnet test --solution Retune.slnx
+./tools/package.ps1               # release packages in artifacts/dist (Inno Setup for the installer)
+./tools/make-screenshots.ps1 -X <x> -Y <y>   # README screenshots; place the window on the internal display
 ```
 
 The app exe is at `src/Retune.App/bin/Debug/net10.0-windows10.0.19041.0/win-x64/Retune.exe`.

@@ -10,7 +10,9 @@
   </ResourceDictionary.MergedDictionaries>
 
   <!-- Context menu shared by tiles and rows. DataContext = the ShellViewModel (via the button's Tag). -->
-  <ContextMenu x:Key="ItemMenu" x:Shared="False" DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+  <!-- One shared instance: every binding goes through PlacementTarget, which WPF sets on each open, so tiles that
+       scroll past never build a menu of their own. -->
+  <ContextMenu x:Key="ItemMenu" DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
     <MenuItem Header="Play" Command="{Binding PlayCommand}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
       <MenuItem.Icon><ui:SymbolIcon Symbol="Play24" /></MenuItem.Icon>
     </MenuItem>

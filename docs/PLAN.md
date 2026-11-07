@@ -1,6 +1,6 @@
 # Retune for Windows: architecture and build plan
 
-Status: **draft for approval**. Feature parity is defined by `docs/spec/core.md` (data and logic) and `docs/spec/ui-player.md` (UI and player), both derived from the macOS app. This document covers *how* we build it.
+Status: **phases 0–6 complete** (approved plan, built and verified; see the status notes in section 6). Feature parity is defined by `docs/spec/core.md` (data and logic) and `docs/spec/ui-player.md` (UI and player), both derived from the macOS app. This document covers *how* we build it.
 
 ## 1. Quality bar
 
@@ -107,6 +107,13 @@ Notable designs:
 | **6. Hardening and release** | 88k-item perf runs, a 4-hour playback soak (memory flat), installer + portable zip, README | Release build installs cleanly on a fresh user profile |
 
 I'll review my own work at the end of every phase (the code-review skill) before moving on.
+
+**Status notes (phase 6).** Done: 88k-item performance probe (`--perf`), a 1-hour silent playback soak with a
+reconnect every 30 s (private memory levels off at about 500 MB after 10 minutes, threads and GDI flat, nothing
+logged, clean exit; a 4-hour soak is still to do), per-user installer and portable zip (`tools/package.ps1`), install →
+play → uninstall-with-purge verified, README with screenshots. Open: the 52 MB WinRT projection could shrink by
+projecting only `Windows.Media`; builds aren't code-signed yet; grid wheel-scrolling p95 is about 20 ms at 65k
+posters (list layout is under a frame).
 
 ## 7. Testing strategy
 
