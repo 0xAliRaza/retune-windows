@@ -11,7 +11,7 @@ dotnet build Retune.slnx          # warnings are errors
 dotnet test --solution Retune.slnx
 ```
 
-The app exe is at `src/Retune.App/bin/x64/Debug/net10.0-windows/win-x64/Retune.exe`.
+The app exe is at `src/Retune.App/bin/Debug/net10.0-windows/win-x64/Retune.exe`.
 
 ## Rules for this repo
 

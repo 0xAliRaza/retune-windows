@@ -11,8 +11,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <Platforms>x64</Platforms>
-    <PlatformTarget>x64</PlatformTarget>
     <Company>Retune</Company>
     <Product>Retune</Product>
     <Copyright>GPL-3.0-or-later</Copyright>
