@@ -56,6 +56,12 @@ public partial class App : Application
         MainWindow = window;
         window.Show();
         await _container.Playlists.InitializeAsync().ConfigureAwait(true);
+        if (dev is { PerfReport: { } report, DemoProvider: { } provider })
+        {
+            await PerfProbe.RunAsync(_container, window, provider, report).ConfigureAwait(true);
+            return;
+        }
+
         await DevSession.RunAsync(_container, dev).ConfigureAwait(true);
     }
 

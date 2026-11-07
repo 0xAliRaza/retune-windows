@@ -121,6 +121,18 @@ public partial class ContentView : UserControl
         Shake.BeginAnimation(TranslateTransform.XProperty, shake);
     }
 
+    /// <summary>
+    /// Item menus are built on the first right-click instead of for every tile and row that scrolls past (with
+    /// 65,000 posters that was the main cost of scrolling the grid).
+    /// </summary>
+    private void OnItemContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: null } element)
+        {
+            element.ContextMenu = (ContextMenu)FindResource("ItemMenu");
+        }
+    }
+
     /// <summary>Arrow keys move between tiles (Core's GridNavigation); Enter opens via the button itself.</summary>
     private void OnGridKeyDown(object sender, KeyEventArgs e)
     {

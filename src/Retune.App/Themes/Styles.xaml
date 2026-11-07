@@ -278,6 +278,17 @@
     </Setter>
   </Style>
 
+  <!-- ================================================================ icon glyphs (cheap icons for tiles) -->
+  <Style x:Key="Glyph" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{DynamicResource FluentSystemIcons}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="TextOptions.TextRenderingMode" Value="Grayscale" />
+  </Style>
+  <Style x:Key="GlyphFilled" TargetType="TextBlock" BasedOn="{StaticResource Glyph}">
+    <Setter Property="FontFamily" Value="{DynamicResource FluentSystemIconsFilled}" />
+  </Style>
+
   <!-- ================================================================ toolbar -->
   <Style x:Key="ToolbarButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
     <!-- icon-only: screen readers read the tooltip -->

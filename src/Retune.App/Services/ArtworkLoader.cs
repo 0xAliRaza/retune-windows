@@ -7,13 +7,13 @@ namespace Retune.App.Services;
 
 /// <summary>
 /// Decoded, downsized, frozen bitmaps for the UI. Bytes come from the disk-backed <see cref="IArtworkSource"/>;
-/// decoding happens off the UI thread at the size it's shown, and up to 600 images / 300 MiB stay in memory
+/// decoding happens off the UI thread at the size it's shown, and up to 400 images / 160 MiB stay in memory
 /// (least recently used evicted). Spec: docs/spec/ui-player.md §5.
 /// </summary>
 public sealed class ArtworkLoader(IArtworkSource source)
 {
-    private const int MaxEntries = 600;
-    private const long MaxBytes = 300L << 20;
+    private const int MaxEntries = 400;
+    private const long MaxBytes = 160L << 20;
 
     private readonly Lock _gate = new();
     private readonly Dictionary<string, LinkedListNode<(string Key, BitmapSource Image, long Cost)>> _index = new(StringComparer.Ordinal);
