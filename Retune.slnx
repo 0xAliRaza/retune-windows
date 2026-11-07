@@ -4,11 +4,13 @@
     <Project Path="src/Retune.Core/Retune.Core.csproj" />
     <Project Path="src/Retune.Infrastructure/Retune.Infrastructure.csproj" />
     <Project Path="src/Retune.Mpv/Retune.Mpv.csproj" />
+    <Project Path="src/Retune.Presentation/Retune.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Retune.Core.Tests/Retune.Core.Tests.csproj" />
     <Project Path="tests/Retune.Infrastructure.Tests/Retune.Infrastructure.Tests.csproj" />
     <Project Path="tests/Retune.Mpv.Tests/Retune.Mpv.Tests.csproj" />
+    <Project Path="tests/Retune.Presentation.Tests/Retune.Presentation.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/FakeProvider/FakeProvider.csproj" />

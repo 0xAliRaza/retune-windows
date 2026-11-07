@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Net;
-using System.Net.Http.Headers;
 using Retune.Core.Net;
 
 namespace Retune.Infrastructure.Net;
@@ -38,7 +37,10 @@ public sealed class HttpFetcher : IHttpFetcher, IDisposable
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         };
         _client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
-        _client.DefaultRequestHeaders.UserAgent.Add(ProductInfoHeaderValue.Parse(userAgent));
+        if (!_client.DefaultRequestHeaders.UserAgent.TryParseAdd(userAgent))
+        {
+            throw new ArgumentException("Not a valid User-Agent value.", nameof(userAgent));
+        }
     }
 
     public async Task<HttpBody> GetAsync(string url, long maxBytes, CancellationToken cancellationToken)

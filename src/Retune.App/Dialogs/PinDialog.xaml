@@ -1,0 +1,22 @@
+<d:DialogBase
+    x:Class="Retune.App.Dialogs.PinDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:d="clr-namespace:Retune.App.Dialogs"
+    Width="400">
+  <StackPanel Margin="24">
+    <StackPanel Orientation="Horizontal">
+      <ui:SymbolIcon Symbol="ShieldLock24" FontSize="22" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+      <TextBlock x:Name="TitleText" Margin="10,0,0,0" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+    </StackPanel>
+    <TextBlock x:Name="MessageText" Margin="0,10,0,0" FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+    <ui:PasswordBox x:Name="PinInput" Margin="0,18,0,0" PlaceholderText="PIN" MaxLength="8" />
+    <ui:PasswordBox x:Name="ConfirmInput" Margin="0,10,0,0" PlaceholderText="Confirm PIN" MaxLength="8" />
+    <TextBlock Margin="0,10,0,0" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="{Binding Error}" TextWrapping="Wrap" Visibility="{Binding Error, Converter={StaticResource HasValueToVisibility}}" />
+    <StackPanel Margin="0,22,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+      <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True" />
+      <ui:Button Margin="8,0,0,0" Appearance="Primary" Content="Continue" Click="OnContinue" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</d:DialogBase>

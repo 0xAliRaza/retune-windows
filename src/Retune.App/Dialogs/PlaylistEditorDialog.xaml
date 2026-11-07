@@ -1,0 +1,73 @@
+<d:DialogBase
+    x:Class="Retune.App.Dialogs.PlaylistEditorDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:d="clr-namespace:Retune.App.Dialogs"
+    xmlns:vm="clr-namespace:Retune.Presentation.ViewModels;assembly=Retune.Presentation"
+    Width="540">
+  <StackPanel Margin="26">
+    <TextBlock FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding Heading}" />
+    <TextBlock Margin="0,6,0,0" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Your details are stored on this PC only. Nothing is sent anywhere except your provider." TextWrapping="Wrap" />
+
+    <!-- type -->
+    <Border Margin="0,20,0,0" Padding="3" CornerRadius="8" Background="{DynamicResource ControlFillColorSecondaryBrush}" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+      <UniformGrid Columns="3">
+        <ToggleButton Style="{StaticResource SegmentButton}" Width="Auto" Height="32" Content="Xtream Codes" Tag="{x:Static vm:PlaylistKind.Xtream}" Click="OnKind" IsChecked="{Binding IsXtream, Mode=OneWay}" />
+        <ToggleButton Style="{StaticResource SegmentButton}" Width="Auto" Height="32" Content="M3U URL" Tag="{x:Static vm:PlaylistKind.M3uUrl}" Click="OnKind" IsChecked="{Binding IsM3uUrl, Mode=OneWay}" />
+        <ToggleButton Style="{StaticResource SegmentButton}" Width="Auto" Height="32" Content="M3U File" Tag="{x:Static vm:PlaylistKind.M3uFile}" Click="OnKind" IsChecked="{Binding IsM3uFile, Mode=OneWay}" />
+      </UniformGrid>
+    </Border>
+
+    <TextBlock Margin="0,18,0,6" Style="{StaticResource Caption}" FontSize="13" Text="Name" />
+    <ui:TextBox PlaceholderText="e.g. My IPTV" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+
+    <!-- xtream -->
+    <StackPanel Visibility="{Binding IsXtream, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock Margin="0,14,0,6" Style="{StaticResource Caption}" FontSize="13" Text="Server URL" />
+      <ui:TextBox PlaceholderText="http://example.com:8080" Text="{Binding Server, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Margin="0,14,0,6" Style="{StaticResource Caption}" FontSize="13" Text="Username" />
+      <ui:TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBlock Margin="0,14,0,6" Style="{StaticResource Caption}" FontSize="13" Text="Password" />
+      <ui:PasswordBox x:Name="PasswordInput" PlaceholderText="{Binding PasswordPlaceholder}" />
+    </StackPanel>
+
+    <!-- m3u url -->
+    <StackPanel Visibility="{Binding IsM3uUrl, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock Margin="0,14,0,6" Style="{StaticResource Caption}" FontSize="13" Text="Playlist URL" />
+      <ui:TextBox PlaceholderText="http://…/get.php?username=…&amp;type=m3u_plus" Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" />
+      <Border Margin="0,10,0,0" Padding="12,10" CornerRadius="6" Background="{DynamicResource ControlFillColorSecondaryBrush}" Visibility="{Binding SuggestsXtream, Converter={StaticResource BoolToVisibility}}">
+        <DockPanel>
+          <ui:Button DockPanel.Dock="Right" Margin="10,0,0,0" Content="Use Xtream Codes Instead" Command="{Binding UseXtreamInsteadCommand}" />
+          <TextBlock FontSize="13" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="This is an Xtream link — switching to Xtream Codes gives you series, posters and EPG." TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- m3u file -->
+    <DockPanel Margin="0,14,0,0" Visibility="{Binding IsM3uFile, Converter={StaticResource BoolToVisibility}}">
+      <ui:Button DockPanel.Dock="Right" Content="Choose…" Click="OnChooseFile" />
+      <TextBlock Style="{StaticResource Body}" Text="{Binding FileName}" VerticalAlignment="Center" />
+    </DockPanel>
+
+    <!-- warnings and errors -->
+    <StackPanel Margin="0,12,0,0" Orientation="Horizontal" Visibility="{Binding ShowsPlainHttpWarning, Converter={StaticResource BoolToVisibility}}">
+      <ui:SymbolIcon Symbol="LockOpen16" FontSize="14" Foreground="{DynamicResource SystemFillColorCautionBrush}" VerticalAlignment="Top" Margin="0,1,8,0" />
+      <TextBlock MaxWidth="460" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{x:Static vm:PlaylistEditorViewModel.PlainHttpWarning}" TextWrapping="Wrap" />
+    </StackPanel>
+    <StackPanel Margin="0,12,0,0" Orientation="Horizontal" Visibility="{Binding Error, Converter={StaticResource HasValueToVisibility}}">
+      <ui:SymbolIcon Symbol="Warning24" FontSize="15" Foreground="{DynamicResource SystemFillColorCriticalBrush}" VerticalAlignment="Top" Margin="0,1,8,0" />
+      <TextBlock MaxWidth="460" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="{Binding Error}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Margin="0,24,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+      <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True" />
+      <ui:Button Margin="8,0,0,0" MinWidth="90" Appearance="Primary" Command="{Binding SaveCommand}" IsEnabled="{Binding IsValid}" IsDefault="True">
+        <Grid>
+          <TextBlock Text="{Binding SaveLabel}" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+          <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+      </ui:Button>
+    </StackPanel>
+  </StackPanel>
+</d:DialogBase>

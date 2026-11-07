@@ -1,195 +1,88 @@
-using System.ComponentModel;
-using System.Globalization;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Retune.App.Windowing;
-using Retune.Mpv;
+using Retune.App.Composition;
+using Retune.App.Services;
+using Retune.Core.Models;
+using Retune.Presentation.ViewModels;
 using Wpf.Ui.Controls;
 
 namespace Retune.App;
 
-/// <summary>
-/// Phase 0 spike shell: proves smooth embedded video with WPF controls drawn on top.
-/// Replaced by the real browse shell in Phase 3; the video host, overlay host and full-screen
-/// controller it uses are the production components.
-/// </summary>
+/// <summary>The single main window: title bar, browse shell and the modal dialog layer. App-wide shortcuts live here.</summary>
 public partial class MainWindow : FluentWindow
 {
-    private const string UserAgent = "Retune/0.1 (Windows; libmpv)";
+    private readonly DialogLayer _dialogs;
 
-    private readonly DevOptions _dev;
-    private readonly FullScreenController _fullScreen;
-    private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
-    private MpvClient? _mpv;
-    private double _position;
-    private double _duration;
-
-    public MainWindow(DevOptions dev)
+    public MainWindow(AppContainer container)
     {
+        ArgumentNullException.ThrowIfNull(container);
         InitializeComponent();
-        _dev = dev;
-        ShowActivated = !dev.NoActivate;
-        SourceInitialized += (_, _) => ApplyDevBounds();
-        ContentRendered += (_, _) => ScheduleDevSteps();
-        _fullScreen = new FullScreenController(this);
-        _fullScreen.Changed += (_, _) => AppTitleBar.Visibility = _fullScreen.IsFullScreen ? Visibility.Collapsed : Visibility.Visible;
-
-        Video.VideoWindowCreated += OnVideoWindowCreated;
-        PreviewKeyDown += OnKeyDown;
-        Controls.PlayPauseRequested += (_, _) => TogglePause();
-        Controls.FullScreenRequested += (_, _) => _fullScreen.Toggle();
-        Controls.BlockUiRequested += (_, _) => BlockUiThread();
-        _statsTimer.Tick += (_, _) => RefreshStats();
+        Container = container;
+        DataContext = container.Shell;
+        _dialogs = new DialogLayer(DialogLayer, DialogHost);
+        container.Dialogs.Presenter = _dialogs;
+        PreviewKeyDown += OnPreviewKeyDown;
+        PreviewMouseDown += OnMouseBack;
     }
 
-    protected override void OnClosing(CancelEventArgs e)
+    public AppContainer Container { get; }
+
+    private ShellViewModel ViewModel => Container.Shell;
+
+    private void OnBackdropClick(object sender, MouseButtonEventArgs e) => _dialogs.Cancel();
+
+    /// <summary>App-wide shortcuts (spec ui-player §3.2, mapped to Windows conventions).</summary>
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Order matters: stop mpv before its native window is destroyed.
-        _statsTimer.Stop();
-        _mpv?.Dispose();
-        _mpv = null;
-        base.OnClosing(e);
-    }
-
-    private void OnVideoWindowCreated(object? sender, EventArgs e)
-    {
-        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(Video.VideoWindow, volume: 100, UserAgent), logLevel: null);
-        if (_dev.Silent)
-        {
-            _mpv.SetProperty("mute", true);
-        }
-
-        _mpv.Observe("time-pos", MpvPropertyFormat.Number);
-        _mpv.Observe("duration", MpvPropertyFormat.Number);
-        _mpv.Observe("pause", MpvPropertyFormat.Flag);
-        _mpv.EventReceived += (_, evt) => Dispatcher.BeginInvoke(() => OnMpvEvent(evt));
-        _statsTimer.Start();
-
-        if (_dev.MediaPath is not { } path)
-        {
-            Controls.SetTitle("No file. Start with --play <path>");
-            return;
-        }
-
-        Controls.SetTitle(System.IO.Path.GetFileName(path));
-        _mpv.CommandAsync("loadfile", path, "replace");
-    }
-
-    private void ApplyDevBounds()
-    {
-        if (_dev.WindowBounds is { } b)
-        {
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
-            Interop.NativeMethods.SetWindowPos(hwnd, 0, b.X, b.Y, b.Width, b.Height,
-                Interop.NativeMethods.SwpNoActivate | Interop.NativeMethods.SwpNoZOrder);
-        }
-    }
-
-    private void ScheduleDevSteps()
-    {
-        foreach (var step in _dev.Steps)
-        {
-            var timer = new DispatcherTimer { Interval = step.At };
-            timer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                RunDevStep(step.Action);
-            };
-            timer.Start();
-        }
-    }
-
-    private void RunDevStep(string action)
-    {
-        switch (action)
-        {
-            case "block":
-                BlockUiThread();
-                break;
-            case "fullscreen":
-                _fullScreen.Toggle();
-                break;
-            case "maximize":
-                WindowState = WindowState.Maximized;
-                break;
-            case "restore":
-                WindowState = WindowState.Normal;
-                break;
-            case "minimize":
-                WindowState = WindowState.Minimized;
-                break;
-            case "front":
-                // Bring forward without taking keyboard focus (unattended runs only).
-                Topmost = true;
-                Topmost = false;
-                break;
-            case "resize":
-                Width = MinWidth;
-                Height = MinHeight;
-                break;
-            case "quit":
-                Close();
-                break;
-            default:
-                Controls.SetTitle($"Unknown dev step '{action}'");
-                break;
-        }
-
-        Controls.ShowChrome();
-    }
-
-    private void OnMpvEvent(MpvEvent evt)
-    {
-        switch (evt)
-        {
-            case MpvPropertyChanged { Name: "time-pos" } p:
-                _position = p.Value as double? ?? 0;
-                break;
-            case MpvPropertyChanged { Name: "duration" } p:
-                _duration = p.Value as double? ?? 0;
-                break;
-            case MpvPropertyChanged { Name: "pause" } p:
-                Controls.SetPaused(p.Value as bool? ?? false);
-                break;
-            case MpvEndFile { Reason: MpvEndFileReason.Error } end:
-                Controls.SetTitle($"Playback failed: {end.ErrorMessage}");
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void RefreshStats()
-    {
-        if (_mpv is null)
+        if (_dialogs.IsOpen)
         {
             return;
         }
 
-        var decoder = _mpv.GetString("hwdec-current") is { Length: > 0 } hw and not "no" ? $"Hardware ({hw})" : "Software";
-        var fps = _mpv.GetDouble("estimated-vf-fps");
-        var dropped = _mpv.GetInt64("frame-drop-count") ?? 0;
-        var size = _mpv.GetInt64("video-params/w") is { } w && _mpv.GetInt64("video-params/h") is { } h ? $"{w}×{h}" : "—";
-        Controls.SetStats(string.Create(CultureInfo.InvariantCulture,
-            $"{Clock(_position)} / {Clock(_duration)} · {size} · {fps:0.0} fps · {decoder} · dropped {dropped}"));
-    }
+        var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        var alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        var typing = Keyboard.FocusedElement is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox;
 
-    private void OnKeyDown(object sender, KeyEventArgs e)
-    {
-        switch (e.Key)
+        switch (key)
         {
-            case Key.Space:
-                TogglePause();
+            case Key.D1 or Key.NumPad1 when ctrl && shift:
+                ViewModel.SetLayout(LayoutMode.Grid);
                 break;
-            case Key.F or Key.F11:
-                _fullScreen.Toggle();
+            case Key.D2 or Key.NumPad2 when ctrl && shift:
+                ViewModel.SetLayout(LayoutMode.List);
                 break;
-            case Key.Escape when _fullScreen.IsFullScreen:
-                _fullScreen.Exit();
+            case Key.D3 or Key.NumPad3 when ctrl && shift:
+                ViewModel.SetLayout(LayoutMode.Compact);
                 break;
-            case Key.B:
-                BlockUiThread();
+            case Key.D1 or Key.NumPad1 when ctrl:
+                ViewModel.SelectSection(LibrarySection.Live);
+                break;
+            case Key.D2 or Key.NumPad2 when ctrl:
+                ViewModel.SelectSection(LibrarySection.Movies);
+                break;
+            case Key.D3 or Key.NumPad3 when ctrl:
+                ViewModel.SelectSection(LibrarySection.Series);
+                break;
+            case Key.F when ctrl:
+                Shell.FocusSearch();
+                break;
+            case Key.R when ctrl:
+            case Key.F5:
+                _ = ViewModel.RefreshAsync();
+                break;
+            case Key.N when ctrl:
+                _ = ViewModel.AddPlaylistAsync();
+                break;
+            case Key.L when ctrl:
+                ViewModel.LockAll();
+                break;
+            case Key.Left when alt:
+            case Key.Back when !typing && ViewModel.CanGoBack:
+                ViewModel.Back();
+                break;
+            case Key.Escape when !typing && ViewModel.CanGoBack:
+                ViewModel.Back();
                 break;
             default:
                 return;
@@ -198,20 +91,13 @@ public partial class MainWindow : FluentWindow
         e.Handled = true;
     }
 
-    private void TogglePause()
+    /// <summary>The mouse's Back button leaves a detail page.</summary>
+    private void OnMouseBack(object sender, MouseButtonEventArgs e)
     {
-        if (_mpv is not null)
+        if (e.ChangedButton == MouseButton.XButton1 && ViewModel.CanGoBack)
         {
-            _mpv.SetProperty("pause", !(_mpv.GetFlag("pause") ?? false));
+            ViewModel.Back();
+            e.Handled = true;
         }
-    }
-
-    /// <summary>Spike check: video must keep playing while the WPF UI thread is blocked.</summary>
-    private static void BlockUiThread() => Thread.Sleep(TimeSpan.FromSeconds(3));
-
-    private static string Clock(double seconds)
-    {
-        var t = TimeSpan.FromSeconds(Math.Max(0, seconds));
-        return t.TotalHours >= 1 ? t.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture) : t.ToString(@"m\:ss", CultureInfo.InvariantCulture);
     }
 }

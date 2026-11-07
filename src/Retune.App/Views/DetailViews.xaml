@@ -1,0 +1,49 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:c="clr-namespace:Retune.App.Controls">
+
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="/Retune;component/Themes/Styles.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <!-- The hero shared by movie and series pages: backdrop fading into the page, poster, title, metadata. -->
+  <DataTemplate x:Key="DetailHero">
+    <Grid Height="420">
+      <c:ArtworkImage Source="{Binding Backdrop}" Title="{Binding Title}" PixelSize="1600" ShowPlaceholder="False" Opacity="0.85" />
+      <Border>
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#22000000" />
+            <GradientStop Offset="0.6" Color="#B0000000" />
+            <GradientStop Offset="1" Color="{DynamicResource ApplicationBackgroundColor}" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
+      <Border>
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Offset="0" Color="#99000000" />
+            <GradientStop Offset="0.6" Color="#00000000" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
+      <Grid Margin="36,0,36,30" VerticalAlignment="Bottom">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="190" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Width="190" Height="285" CornerRadius="12" c:RoundedClip.Radius="12">
+          <Border.Effect><DropShadowEffect BlurRadius="24" Opacity="0.5" ShadowDepth="10" Direction="270" /></Border.Effect>
+          <c:ArtworkImage Source="{Binding Poster}" Title="{Binding Title}" Initials="{Binding Title}" PixelSize="600" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="28,0,0,0" VerticalAlignment="Bottom">
+          <TextBlock FontFamily="{StaticResource DisplayFont}" FontSize="36" FontWeight="Bold" Foreground="White" Text="{Binding Title}" TextWrapping="Wrap" MaxHeight="140" TextTrimming="CharacterEllipsis" />
+          <TextBlock Margin="0,8,0,0" FontSize="14" FontWeight="Medium" Foreground="#CCFFFFFF" Text="{Binding Metadata}" />
+          <ContentPresenter Margin="0,18,0,0" Content="{Binding}" ContentTemplate="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentControl}}" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </DataTemplate>
+</ResourceDictionary>

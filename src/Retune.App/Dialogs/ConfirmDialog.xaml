@@ -1,0 +1,16 @@
+<d:DialogBase
+    x:Class="Retune.App.Dialogs.ConfirmDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:d="clr-namespace:Retune.App.Dialogs"
+    Width="440">
+  <StackPanel Margin="24">
+    <TextBlock x:Name="TitleText" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+    <TextBlock x:Name="MessageText" Margin="0,10,0,0" FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+    <StackPanel Margin="0,24,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+      <ui:Button Content="Cancel" Click="OnCancel" IsCancel="True" />
+      <ui:Button x:Name="ConfirmButton" Margin="8,0,0,0" Click="OnConfirm" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</d:DialogBase>

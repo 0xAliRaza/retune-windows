@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Retune.Mpv\Retune.Mpv.csproj" />
+    <ProjectReference Include="..\Retune.Presentation\Retune.Presentation.csproj" />
+    <ProjectReference Include="..\Retune.Infrastructure\Retune.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

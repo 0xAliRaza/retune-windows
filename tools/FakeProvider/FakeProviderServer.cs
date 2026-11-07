@@ -81,6 +81,7 @@ public sealed class FakeProviderServer : IAsyncDisposable
             return Results.Json(new { user_info = new { auth = 0 } });
         }
 
+        var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
         int IdParam(string name) => int.TryParse(query[name], NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
         return query["action"].ToString() switch
         {
@@ -102,11 +103,11 @@ public sealed class FakeProviderServer : IAsyncDisposable
             "get_live_categories" => Results.Json(DemoCatalog.Categories("live")),
             "get_vod_categories" => Results.Json(DemoCatalog.Categories("vod")),
             "get_series_categories" => Results.Json(DemoCatalog.Categories("series")),
-            "get_live_streams" => Results.Json(catalog.LiveStreams()),
-            "get_vod_streams" => Results.Json(catalog.VodStreams()),
-            "get_series" => Results.Json(catalog.SeriesList()),
-            "get_vod_info" => Results.Json(DemoCatalog.VodInfo(IdParam("vod_id"))),
-            "get_series_info" => Results.Json(DemoCatalog.SeriesInfo(IdParam("series_id"))),
+            "get_live_streams" => Results.Json(catalog.LiveStreams(baseUrl)),
+            "get_vod_streams" => Results.Json(catalog.VodStreams(baseUrl)),
+            "get_series" => Results.Json(catalog.SeriesList(baseUrl)),
+            "get_vod_info" => Results.Json(DemoCatalog.VodInfo(IdParam("vod_id"), baseUrl)),
+            "get_series_info" => Results.Json(DemoCatalog.SeriesInfo(IdParam("series_id"), baseUrl)),
             "get_short_epg" => Results.Json(DemoCatalog.ShortEpg(IdParam("stream_id"), DateTimeOffset.UtcNow)),
             _ => Results.Json(Array.Empty<object>()),
         };

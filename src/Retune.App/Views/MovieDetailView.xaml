@@ -1,0 +1,51 @@
+<UserControl
+    x:Class="Retune.App.Views.MovieDetailView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Retune;component/Views/DetailViews.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <DataTemplate x:Key="Actions">
+        <StackPanel Orientation="Horizontal">
+          <ui:Button Appearance="Primary" Padding="20,10" Icon="{ui:SymbolIcon Play24, Filled=True}" Content="{Binding PrimaryLabel}" Command="{Binding PlayCommand}" IsDefault="True" />
+          <ui:Button Margin="10,0,0,0" Padding="16,10" Icon="{ui:SymbolIcon ArrowClockwise24}" Content="Start Over" Command="{Binding StartOverCommand}" Visibility="{Binding CanStartOver, Converter={StaticResource BoolToVisibility}}" />
+          <ui:Button x:Name="Fav" Margin="10,0,0,0" Padding="16,10" Icon="{ui:SymbolIcon Star24}" Content="Favorite" Command="{Binding ToggleFavoriteCommand}" />
+        </StackPanel>
+        <DataTemplate.Triggers>
+          <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+            <Setter TargetName="Fav" Property="Content" Value="Favorited" />
+            <Setter TargetName="Fav" Property="Icon" Value="{ui:SymbolIcon Star24, Filled=True}" />
+          </DataTrigger>
+        </DataTemplate.Triggers>
+      </DataTemplate>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource DetailHero}" Tag="{StaticResource Actions}" Focusable="False" />
+      <StackPanel Margin="36,4,36,36" MaxWidth="900" HorizontalAlignment="Left">
+        <TextBlock FontSize="15" LineHeight="23" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding Plot}" TextWrapping="Wrap" Visibility="{Binding Plot, Converter={StaticResource HasValueToVisibility}}" />
+        <Grid Margin="0,20,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Style="{StaticResource Caption}" FontSize="14" Text="Cast" Visibility="{Binding Info.Cast, Converter={StaticResource HasValueToVisibility}}" />
+          <TextBlock Grid.Column="1" Style="{StaticResource Body}" Text="{Binding Info.Cast}" TextWrapping="Wrap" />
+          <TextBlock Grid.Row="1" Margin="0,8,0,0" Style="{StaticResource Caption}" FontSize="14" Text="Director" Visibility="{Binding Info.Director, Converter={StaticResource HasValueToVisibility}}" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Style="{StaticResource Body}" Text="{Binding Info.Director}" />
+          <TextBlock Grid.Row="2" Margin="0,8,0,0" Style="{StaticResource Caption}" FontSize="14" Text="Released" Visibility="{Binding Info.ReleaseDate, Converter={StaticResource HasValueToVisibility}}" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" Style="{StaticResource Body}" Text="{Binding Info.ReleaseDate}" />
+        </Grid>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

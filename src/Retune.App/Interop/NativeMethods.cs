@@ -40,6 +40,29 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     internal static partial nint SetFocus(nint hwnd);
 
+    [LibraryImport("user32.dll", EntryPoint = "FindWindowW", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial nint FindWindow(string? className, string windowName);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool ShowWindow(nint hwnd, int command);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetForegroundWindow(nint hwnd);
+
+    /// <summary>Restores and focuses the already-running Retune window.</summary>
+    internal static void ActivateExistingWindow(string title)
+    {
+        const int SwRestore = 9;
+        var hwnd = FindWindow(null, title);
+        if (hwnd != 0)
+        {
+            ShowWindow(hwnd, SwRestore);
+            SetForegroundWindow(hwnd);
+        }
+    }
+
     [LibraryImport("user32.dll")]
     internal static partial nint MonitorFromWindow(nint hwnd, uint flags);
 

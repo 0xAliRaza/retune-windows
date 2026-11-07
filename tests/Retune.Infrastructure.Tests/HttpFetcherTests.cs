@@ -140,6 +140,16 @@ public sealed class HttpFetcherTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_app_user_agent_with_a_platform_comment_is_accepted()
+    {
+        using var app = new HttpFetcher(4, "Retune/0.1 (Windows)");
+
+        var echo = Encoding.UTF8.GetString((await app.GetAsync(_server.Url("/echo"), 1024, TestContext.Current.CancellationToken)).Content.Span);
+
+        Assert.EndsWith("ua=Retune/0.1 (Windows)", echo, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Caller_cancellation_is_not_reported_as_a_timeout()
     {
         using var cts = new CancellationTokenSource();

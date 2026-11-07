@@ -19,6 +19,9 @@ public sealed class CatalogSource(IHttpFetcher fetcher, ILocalFileReader files, 
             : null;
     }
 
+    /// <summary>A client for credentials that aren't stored yet (validating the Add/Edit form).</summary>
+    public XtreamClient ClientFor(XtreamCredentials credentials) => new(credentials, fetcher, time);
+
     public async Task<Catalog> FetchAsync(Playlist playlist, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(playlist);
