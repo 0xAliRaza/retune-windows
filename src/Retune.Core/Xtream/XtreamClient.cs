@@ -95,7 +95,7 @@ public sealed class XtreamClient(XtreamCredentials credentials, IHttpFetcher fet
             }
             catch (FetchException ex)
             {
-                throw ex.Failure == FetchFailure.TooLarge ? RetuneException.ResponseTooLarge() : RetuneException.Network(ex.Message, ex);
+                throw RetuneException.FromFetch(ex);
             }
 
             var status = response.StatusCode ?? 200;

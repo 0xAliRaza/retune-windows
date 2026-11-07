@@ -84,6 +84,19 @@ public sealed class RetuneException : Exception
     public static RetuneException ConnectionLost(Exception? inner = null) =>
         new(ProblemKind.ConnectionLost, "The connection to the server was lost.", inner);
 
+    /// <summary>Maps a transport failure to what the user sees.</summary>
+    public static RetuneException FromFetch(Net.FetchException ex)
+    {
+        ArgumentNullException.ThrowIfNull(ex);
+        return ex.Failure switch
+        {
+            Net.FetchFailure.Timeout => Timeout(ex),
+            Net.FetchFailure.ConnectionLost => ConnectionLost(ex),
+            Net.FetchFailure.TooLarge => ResponseTooLarge(),
+            _ => Network(ex.Message, ex),
+        };
+    }
+
     /// <param name="message">A platform message that has been checked to contain no URL.</param>
     public static RetuneException Network(string message, Exception? inner = null) => new(ProblemKind.Network, message, inner);
 }
