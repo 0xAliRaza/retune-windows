@@ -9,6 +9,7 @@ public partial class App : Application
 #pragma warning restore CA1001
 {
     private const string InstanceName = "Retune.SingleInstance.v1";
+    private const string PurgeDataArgument = "--purge-data";
 
     private Mutex? _instance;
     private AppContainer? _container;
@@ -18,6 +19,13 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Contains(PurgeDataArgument))
+        {
+            // Run by the uninstaller when the user also wants their data removed: no window, exit code only.
+            Shutdown(PurgeData());
+            return;
+        }
+
         var dev = DevOptions.Parse(e.Args);
 
         if (dev.RenderFolder is null && !ClaimSingleInstance())
@@ -76,6 +84,20 @@ public partial class App : Application
         _container?.Dispose();
         _instance?.Dispose();
         base.OnExit(e);
+    }
+
+    private static int PurgeData()
+    {
+        try
+        {
+            var paths = Infrastructure.Storage.AppPaths.ForCurrentUser();
+            Infrastructure.Storage.DataPurge.Run(paths, new Infrastructure.Secrets.CredentialManagerSecretStore(paths.SecretPrefix));
+            return 0;
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException or InvalidOperationException or Core.Errors.RetuneException)
+        {
+            return 1;
+        }
     }
 
     /// <summary>One Retune per user: a second launch just brings the first window forward.</summary>

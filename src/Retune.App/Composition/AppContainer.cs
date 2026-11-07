@@ -40,7 +40,7 @@ public sealed class AppContainer : IDisposable
         var playlists = new PlaylistStore(protectedData);
         Settings = new SettingsService(new SettingsStore(data), Time);
         _catalogs = new CatalogCache(Paths.CatalogDirectory, Time);
-        var secrets = new CredentialManagerSecretStore();
+        var secrets = new CredentialManagerSecretStore(Paths.SecretPrefix);
 
         _apiFetcher = new HttpFetcher(maxConnectionsPerServer: 4, UserAgent);
         _artworkFetcher = new HttpFetcher(maxConnectionsPerServer: 8, UserAgent, idleTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(60));

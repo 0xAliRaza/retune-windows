@@ -6,6 +6,7 @@
     xmlns:v="clr-namespace:Retune.App.Views"
     xmlns:video="clr-namespace:Retune.App.Video"
     Title="Retune"
+    Icon="/Assets/Retune.ico"
     Width="1360"
     Height="860"
     MinWidth="980"
@@ -20,7 +21,9 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <ui:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Retune" />
+    <ui:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Retune">
+      <ui:TitleBar.Icon><ui:ImageIcon Source="/Assets/Retune.ico" /></ui:TitleBar.Icon>
+    </ui:TitleBar>
     <v:ShellView x:Name="ShellPane" Grid.Row="1" />
 
     <!-- The player: one video window for the app's lifetime, with the chrome in a transparent layer above it. -->

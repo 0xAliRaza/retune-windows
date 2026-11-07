@@ -86,6 +86,43 @@ public sealed partial class CredentialManagerSecretStore(string targetPrefix = C
         }
     }
 
+    /// <summary>Deletes every credential under this store's prefix (uninstall: "also delete my data"). Returns how many.</summary>
+    public int RemoveAll()
+    {
+        if (!CredEnumerate(targetPrefix + "*", 0, out var count, out var list))
+        {
+            var error = Marshal.GetLastPInvokeError();
+            return error == ErrorNotFound ? 0 : throw RetuneException.SecretStore(error);
+        }
+
+        var targets = new List<string>(count);
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                var credential = Marshal.PtrToStructure<Credential>(Marshal.ReadIntPtr(list, i * nint.Size));
+                if (Marshal.PtrToStringUni(credential.TargetName) is { } target && target.StartsWith(targetPrefix, StringComparison.Ordinal))
+                {
+                    targets.Add(target);
+                }
+            }
+        }
+        finally
+        {
+            CredFree(list);
+        }
+
+        foreach (var target in targets)
+        {
+            if (!CredDelete(target, CredTypeGeneric, 0) && Marshal.GetLastPInvokeError() != ErrorNotFound)
+            {
+                throw RetuneException.SecretStore(Marshal.GetLastPInvokeError());
+            }
+        }
+
+        return targets.Count;
+    }
+
     private string Target(Guid playlistId) => $"{targetPrefix}{playlistId:D}";
 
     /// <summary>CREDENTIALW.</summary>
@@ -117,6 +154,10 @@ public sealed partial class CredentialManagerSecretStore(string targetPrefix = C
     [LibraryImport("advapi32.dll", EntryPoint = "CredDeleteW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool CredDelete(string target, uint type, uint flags);
+
+    [LibraryImport("advapi32.dll", EntryPoint = "CredEnumerateW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CredEnumerate(string filter, uint flags, out int count, out nint credentials);
 
     [LibraryImport("advapi32.dll", EntryPoint = "CredFree")]
     private static partial void CredFree(nint buffer);

@@ -11,8 +11,13 @@
     <RootNamespace>Retune.App</RootNamespace>
     <AssemblyName>Retune</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Retune.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Retune.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="WPF-UI" />

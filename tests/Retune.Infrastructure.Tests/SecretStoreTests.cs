@@ -33,4 +33,27 @@ public sealed class SecretStoreTests : IDisposable
 
         Assert.Equal(string.Empty, _store.Find(_id));
     }
+
+    [Fact]
+    public void RemoveAll_deletes_only_this_prefix()
+    {
+        var other = new CredentialManagerSecretStore($"RetuneTest-{Guid.NewGuid():N}/");
+        var otherId = Guid.NewGuid();
+        try
+        {
+            _store.Store(_id, "a");
+            _store.Store(Guid.NewGuid(), "b");
+            other.Store(otherId, "keep");
+
+            Assert.Equal(2, _store.RemoveAll());
+
+            Assert.Null(_store.Find(_id));
+            Assert.Equal("keep", other.Find(otherId));
+            Assert.Equal(0, _store.RemoveAll());
+        }
+        finally
+        {
+            other.Remove(otherId);
+        }
+    }
 }
