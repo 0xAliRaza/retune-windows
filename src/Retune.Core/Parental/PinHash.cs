@@ -116,6 +116,11 @@ public sealed class PinAttemptLimiter(TimeProvider time)
 
     public bool CanAttempt => RemainingLockout == TimeSpan.Zero;
 
+    /// <summary>What to say after a PIN was refused: a wrong entry, or the pause and how long it still lasts.</summary>
+    public string RejectionMessage => CanAttempt
+        ? "Wrong PIN."
+        : $"Too many wrong PINs. Try again in {Math.Ceiling(RemainingLockout.TotalSeconds).ToString("0", System.Globalization.CultureInfo.InvariantCulture)} s.";
+
     public void RecordFailure()
     {
         _failures++;

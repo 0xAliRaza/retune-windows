@@ -47,7 +47,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     public LiveFormatOption SelectedLiveFormat
     {
-        get => LiveFormats.First(o => o.Format == _settings.Current.LiveFormat);
+        get => LiveFormats.FirstOrDefault(o => o.Format == _settings.Current.LiveFormat) ?? LiveFormats[0];
         set
         {
             ArgumentNullException.ThrowIfNull(value);

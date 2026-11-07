@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation.Peers;
 using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
@@ -63,10 +64,6 @@ public sealed class OverlayHost : HwndHost
     }
 
     /// <summary>
-    /// The overlay never owns keyboard focus, so every key reaches the main window exactly once and
-    /// shortcuts work the same whether or not the user just clicked a control.
-    /// </summary>
-    /// <summary>
     /// Let the overlay own keyboard focus (while a text box in it is in use). Turning it off hands focus back
     /// to the main window.
     /// </summary>
@@ -85,6 +82,10 @@ public sealed class OverlayHost : HwndHost
 
     private bool _allowFocus;
 
+    /// <summary>
+    /// The overlay never owns keyboard focus (unless allowed), so every key reaches the main window exactly once
+    /// and shortcuts work the same whether or not the user just clicked a control.
+    /// </summary>
     private nint KeepKeyboardInParent(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
     {
         if (msg == NativeMethods.WmSetFocus && _parent != 0 && !_allowFocus)
@@ -94,6 +95,27 @@ public sealed class OverlayHost : HwndHost
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// HwndHost answers WM_GETOBJECT for the hosted window itself, with an empty Win32 element, which hides the
+    /// whole player chrome from screen readers. Passing it on lets the overlay's own HwndSource answer with its
+    /// WPF automation tree.
+    /// </summary>
+    /// <summary>
+    /// The overlay window's own tree already appears under the main window (its native parent), so this host must
+    /// not claim it as well, or UI Automation sees the player chrome twice and walks in circles.
+    /// </summary>
+    protected override AutomationPeer OnCreateAutomationPeer() => new EmptyHostPeer(this);
+
+    protected override nint WndProc(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == NativeMethods.WmGetObject)
+        {
+            return 0;
+        }
+
+        return base.WndProc(hwnd, msg, wParam, lParam, ref handled);
     }
 
     protected override void OnWindowPositionChanged(Rect rcBoundingBox)
@@ -116,5 +138,16 @@ public sealed class OverlayHost : HwndHost
             NativeMethods.SetWindowPos(_source.Handle, NativeMethods.HwndTop, 0, 0, 0, 0,
                 NativeMethods.SwpNoMove | NativeMethods.SwpNoSize | NativeMethods.SwpNoActivate | NativeMethods.SwpNoOwnerZOrder);
         }
+    }
+
+    private sealed class EmptyHostPeer(OverlayHost owner) : FrameworkElementAutomationPeer(owner)
+    {
+        protected override List<AutomationPeer>? GetChildrenCore() => null;
+
+        protected override bool IsControlElementCore() => false;
+
+        protected override bool IsContentElementCore() => false;
+
+        protected override string GetClassNameCore() => nameof(OverlayHost);
     }
 }

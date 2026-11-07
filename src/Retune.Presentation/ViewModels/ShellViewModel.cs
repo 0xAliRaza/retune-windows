@@ -132,6 +132,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
 
         CloseSettings();
+        UnlockError = null;
         Section = section;
         _details.Clear();
         Detail = null;
@@ -150,6 +151,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         ArgumentNullException.ThrowIfNull(row);
         CloseSettings();
+        UnlockError = null;
         Filter = row.Filter;
         _details.Clear();
         Detail = null;
@@ -321,6 +323,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Why the last unlock attempt was refused (wrong PIN, or the lockout); cleared on success or a new category.</summary>
+    [ObservableProperty]
+    public partial string? UnlockError { get; private set; }
+
     /// <summary>The locked-content prompt's Unlock button. Returns false for a wrong PIN or during lockout.</summary>
     public bool TryUnlock(string pin)
     {
@@ -331,9 +337,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         if (_library.CheckPin(pin) == Core.Parental.PinCheck.Wrong)
         {
+            UnlockError = _library.Pins.RejectionMessage;
             return false;
         }
 
+        UnlockError = null;
         _library.Unlock(LibraryKeys.Category(active.Id, Section, id));
         return true;
     }

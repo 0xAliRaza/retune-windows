@@ -251,7 +251,7 @@ public sealed partial class VerifyPinViewModel(LibraryService library, string re
     {
         if (!library.Pins.CanAttempt)
         {
-            Error = $"Too many wrong PINs. Try again in {Math.Ceiling(library.Pins.RemainingLockout.TotalSeconds):0} s.";
+            Error = library.Pins.RejectionMessage;
             return false;
         }
 
@@ -261,7 +261,7 @@ public sealed partial class VerifyPinViewModel(LibraryService library, string re
         }
 
         Pin = string.Empty;
-        Error = library.Pins.CanAttempt ? "Wrong PIN." : $"Too many wrong PINs. Try again in {Math.Ceiling(library.Pins.RemainingLockout.TotalSeconds):0} s.";
+        Error = library.Pins.RejectionMessage;
         return false;
     }
 }

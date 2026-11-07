@@ -21,6 +21,7 @@ internal static partial class NativeMethods
     internal const uint MonitorDefaultToNearest = 0x00000002;
 
     internal const int WmSetFocus = 0x0007;
+    internal const int WmGetObject = 0x003D;
 
     internal static readonly nint HwndTop = 0;
 

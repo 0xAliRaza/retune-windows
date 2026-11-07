@@ -84,7 +84,6 @@ public partial class ContentView : UserControl
         if (content.State == ContentState.Locked)
         {
             PinBox.Password = string.Empty;
-            PinError.Visibility = Visibility.Collapsed;
         }
 
         content.SetAvailableWidth(Body.ActualWidth);
@@ -113,7 +112,6 @@ public partial class ContentView : UserControl
         }
 
         PinBox.Password = string.Empty;
-        PinError.Visibility = Visibility.Visible;
         var shake = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromSeconds(0.3) };
         foreach (var (offset, i) in new[] { 10.0, -8, 6, -4, 0 }.Select((o, i) => (o, i)))
         {

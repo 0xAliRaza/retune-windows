@@ -198,6 +198,65 @@ public sealed class ShellTests
     }
 
     [Fact]
+    public async Task Parental_journey_create_lock_lockout_unlock_relock_and_remove()
+    {
+        await using var app = await AppHarness.StartAsync();
+        await app.AddDemoAsync();
+        app.Shell.SelectCategory(app.Shell.Categories.Categories[0]);
+        var secret = app.Shell.Content.Items[0].Title;
+
+        // Create the PIN (the real sheet's view model), then lock the category.
+        var create = new CreatePinViewModel(app.Library) { Pin = "2468", Confirm = "2468" };
+        Assert.True(create.Submit());
+        await app.Shell.LockAsync(app.Shell.Categories.Categories[0]);
+
+        // Nothing of it leaks into search.
+        Search(app, secret);
+        Assert.DoesNotContain(app.Shell.Content.Items, i => i.Title == secret);
+        Search(app, string.Empty);
+
+        // Five wrong tries pause entry; even the right PIN is refused until the pause ends.
+        app.Shell.SelectCategory(app.Shell.Categories.Categories[0]);
+        Assert.Equal(ContentState.Locked, app.Shell.Content.State);
+        for (var i = 0; i < 4; i++)
+        {
+            Assert.False(app.Shell.TryUnlock("0000"));
+            Assert.Equal("Wrong PIN.", app.Shell.UnlockError);
+        }
+
+        Assert.False(app.Shell.TryUnlock("0000"));
+        Assert.StartsWith("Too many wrong PINs. Try again in 30 s", app.Shell.UnlockError, StringComparison.Ordinal);
+        Assert.False(app.Shell.TryUnlock("2468"));
+        Assert.Equal(ContentState.Locked, app.Shell.Content.State);
+
+        app.Time.Advance(TimeSpan.FromSeconds(30));
+        Assert.True(app.Shell.TryUnlock("2468"));
+        Assert.Null(app.Shell.UnlockError);
+        Assert.Equal(ContentState.Items, app.Shell.Content.State);
+        Search(app, secret);
+        Assert.Contains(app.Shell.Content.Items, i => i.Title == secret);
+        Search(app, string.Empty);
+
+        // Ctrl+L locks it again.
+        app.Shell.SelectCategory(app.Shell.Categories.Categories[0]);
+        app.Shell.LockAll();
+        Assert.Equal(ContentState.Locked, app.Shell.Content.State);
+
+        // Removing the PIN in Settings (after verifying it) removes every lock.
+        app.Shell.OpenSettings();
+        await app.Shell.SettingsPage!.RemovePinAsync();
+        app.Shell.SelectCategory(app.Shell.Categories.Categories[0]);
+        Assert.Equal(ContentState.Items, app.Shell.Content.State);
+        Assert.Null(app.Library.State.PinHash);
+    }
+
+    private static void Search(AppHarness app, string text)
+    {
+        app.Shell.SearchText = text;
+        app.Time.Advance(ShellViewModel.SearchDebounce);
+    }
+
+    [Fact]
     public async Task Hiding_the_selected_category_falls_back_to_all()
     {
         await using var app = await AppHarness.StartAsync();

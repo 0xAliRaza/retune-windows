@@ -139,7 +139,7 @@
         <ui:PasswordBox x:Name="PinBox" Width="160" PlaceholderText="PIN" KeyDown="OnPinKeyDown" />
         <ui:Button Margin="8,0,0,0" Appearance="Primary" Content="Unlock" Click="OnUnlock" />
       </StackPanel>
-      <TextBlock x:Name="PinError" Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Visibility="Collapsed" Text="Wrong PIN" />
+      <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center" FontSize="13" Foreground="{DynamicResource SystemFillColorCriticalBrush}" Text="{Binding UnlockError}" Visibility="{Binding UnlockError, Converter={StaticResource HasValueToVisibility}}" />
     </StackPanel>
   </Grid>
 </UserControl>
