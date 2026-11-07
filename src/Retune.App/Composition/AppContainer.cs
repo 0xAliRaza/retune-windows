@@ -1,6 +1,9 @@
 using System.Windows;
 using System.Windows.Threading;
+using Retune.Core.Playback;
 using Retune.Core.Sources;
+using Retune.Mpv;
+using Retune.Presentation.Player;
 using Retune.Infrastructure.Net;
 using Retune.Infrastructure.Secrets;
 using Retune.Infrastructure.Storage;
@@ -32,7 +35,7 @@ public sealed class AppContainer : IDisposable
         var data = new JsonFileStore(Paths.DataDirectory, Time);
         var protectedData = new JsonFileStore(Paths.DataDirectory, Time, encrypt: true);
         var playlists = new PlaylistStore(protectedData);
-        Settings = new SettingsStore(data);
+        Settings = new SettingsService(new SettingsStore(data), Time);
         _catalogs = new CatalogCache(Paths.CatalogDirectory, Time);
         var secrets = new CredentialManagerSecretStore();
 
@@ -53,7 +56,7 @@ public sealed class AppContainer : IDisposable
 
     public TimeProvider Time { get; }
 
-    public SettingsStore Settings { get; }
+    public SettingsService Settings { get; }
 
     public ArtworkLoader Artwork { get; }
 
@@ -70,13 +73,66 @@ public sealed class AppContainer : IDisposable
     /// <summary>The container of the running app, for views that need services (artwork, dialogs).</summary>
     public static AppContainer Current => ((App)Application.Current).Container;
 
+    public PlayerViewModel? PlayerModel { get; private set; }
+
+    /// <summary>Dev runs: mute before anything can play.</summary>
+    public bool MuteOnStart { get; set; }
+
+    private MpvClient? _mpv;
+    private MpvEngine? _engine;
+    private PlaybackSession? _session;
+
+    /// <summary>
+    /// Creates the player once the video window exists (mpv must know it before initialising), then replays a
+    /// play request that arrived earlier (the load gate).
+    /// </summary>
+    public PlayerViewModel AttachVideo(nint videoWindow, Dispatcher dispatcher)
+    {
+        ArgumentNullException.ThrowIfNull(dispatcher);
+        void Post(Action action) => dispatcher.BeginInvoke(action);
+        var volume = (int)Core.Playback.VolumeLevel.Clamped(Settings.Current.Volume);
+        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)"), logLevel: null);
+        _engine = new MpvEngine(_mpv, Post);
+        if (MuteOnStart)
+        {
+            _engine.SetMuted(true);
+        }
+
+        _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(Library, Playlists), Time, Post);
+        PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Settings, new KeepAwake(), Time, Post);
+        Player.Attach(PlayerModel);
+        if (Player.LastRequest is { } pending)
+        {
+            PlayerModel.Play(pending);
+        }
+
+        return PlayerModel;
+    }
+
+    /// <summary>Saves the final progress and destroys mpv. Must run before the video window is destroyed.</summary>
+    public void ShutdownPlayer()
+    {
+        PlayerModel?.Close();
+        PlayerModel?.Dispose();
+        _session?.Dispose();
+        _engine?.Dispose();
+        _mpv?.Dispose();
+        PlayerModel = null;
+        _session = null;
+        _engine = null;
+        _mpv = null;
+        Library.Flush();
+    }
+
     public void Dispose()
     {
+        ShutdownPlayer();
         Library.Flush();
         Shell.Dispose();
         Library.Dispose();
         _catalogs.Dispose();
         _apiFetcher.Dispose();
         _artworkFetcher.Dispose();
+        Settings.Dispose();
     }
 }

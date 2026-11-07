@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:v="clr-namespace:Retune.App.Views"
+    xmlns:video="clr-namespace:Retune.App.Video"
     Title="Retune"
     Width="1360"
     Height="860"
@@ -19,8 +20,16 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <ui:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Retune" ShowMinimize="True" ShowMaximize="True" />
-    <v:ShellView x:Name="Shell" Grid.Row="1" />
+    <ui:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Retune" />
+    <v:ShellView x:Name="ShellPane" Grid.Row="1" />
+
+    <!-- The player: one video window for the app's lifetime, with the chrome in a transparent layer above it. -->
+    <Grid x:Name="PlayerLayer" Grid.Row="1">
+      <video:VideoHost x:Name="Video" Width="1" Height="1" HorizontalAlignment="Left" VerticalAlignment="Top" />
+      <video:OverlayHost x:Name="Overlay" Visibility="Collapsed">
+        <v:PlayerView x:Name="PlayerChrome" />
+      </video:OverlayHost>
+    </Grid>
 
     <!-- modal dialog layer -->
     <Grid x:Name="DialogLayer" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed">

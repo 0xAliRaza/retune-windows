@@ -25,8 +25,14 @@ public sealed class PlayerLauncher : IPlayerLauncher
 
     public void Play(Lineup lineup, bool fromResumePoint = true)
     {
-        LastRequest = lineup;
-        _player?.Play(lineup, fromResumePoint);
+        if (_player is null)
+        {
+            LastRequest = lineup; // the player isn't ready yet: it plays this once attached
+            return;
+        }
+
+        LastRequest = null;
+        _player.Play(lineup, fromResumePoint);
     }
 
     public void StopForPlaylistChange() => _player?.StopForPlaylistChange();

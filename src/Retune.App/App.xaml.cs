@@ -41,11 +41,13 @@ public partial class App : Application
             return;
         }
 
+        _container.MuteOnStart = dev.Mute;
         var window = new MainWindow(_container) { ShowActivated = !dev.NoActivate };
         dev.ApplyBounds(window);
         MainWindow = window;
         window.Show();
         await _container.Playlists.InitializeAsync().ConfigureAwait(true);
+        await DevSession.RunAsync(_container, dev).ConfigureAwait(true);
     }
 
     protected override void OnExit(ExitEventArgs e)

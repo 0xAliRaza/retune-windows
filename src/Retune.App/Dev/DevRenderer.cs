@@ -61,6 +61,8 @@ internal static class DevRenderer
 
             app.Shell.SearchText = "midnight";
             await Snap(shell, Path.Combine(folder, "8-search.png"), settle: 1500).ConfigureAwait(true);
+
+            await PlayerPreview.RenderAsync(app, folder).ConfigureAwait(true);
         }
         finally
         {

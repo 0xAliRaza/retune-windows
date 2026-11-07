@@ -17,7 +17,7 @@ public sealed partial class PlaylistController(
     IPlaylistStore playlists,
     ICatalogCache cache,
     ISecretStore secrets,
-    ISettingsStore settings,
+    SettingsService settings,
     CatalogSource source,
     LibraryService library,
     TimeProvider time) : ObservableObject
@@ -54,7 +54,7 @@ public sealed partial class PlaylistController(
     public async Task InitializeAsync()
     {
         Playlists = playlists.Load();
-        var stored = settings.Load().ActivePlaylist;
+        var stored = settings.Current.ActivePlaylist;
         Active = Playlists.FirstOrDefault(p => p.Id == stored) ?? FirstPlaylist();
         await LoadActiveAsync().ConfigureAwait(true);
     }
@@ -72,7 +72,7 @@ public sealed partial class PlaylistController(
         }
 
         Active = target;
-        settings.Save(settings.Load() with { ActivePlaylist = target.Id });
+        settings.Update(s => s with { ActivePlaylist = target.Id });
         await LoadActiveAsync().ConfigureAwait(true);
     }
 
@@ -141,7 +141,7 @@ public sealed partial class PlaylistController(
         if (wasActive)
         {
             Active = FirstPlaylist();
-            settings.Save(settings.Load() with { ActivePlaylist = Active?.Id });
+            settings.Update(s => s with { ActivePlaylist = Active?.Id });
             await LoadActiveAsync().ConfigureAwait(true);
         }
     }

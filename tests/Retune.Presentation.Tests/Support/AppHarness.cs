@@ -21,9 +21,10 @@ internal sealed class AppHarness : IAsyncDisposable
     {
         Provider = provider;
         Library = new LibraryService(LibraryStore, Time);
+        SettingsService = new SettingsService(Settings, Time);
         var source = new CatalogSource(_fetcher, new LocalFileReader(), Secrets, TimeProvider.System);
-        Controller = new PlaylistController(PlaylistStore, Catalogs, Secrets, Settings, source, Library, Time);
-        Shell = new ShellViewModel(Controller, Library, Settings, Dialogs, Player, Time, action => action());
+        Controller = new PlaylistController(PlaylistStore, Catalogs, Secrets, SettingsService, source, Library, Time);
+        Shell = new ShellViewModel(Controller, Library, SettingsService, Dialogs, Player, Time, action => action());
         Controller.ActivePlaylistChanging += (_, _) => Player.StopForPlaylistChange();
     }
 
@@ -47,6 +48,8 @@ internal sealed class AppHarness : IAsyncDisposable
 
     public LibraryService Library { get; }
 
+    public SettingsService SettingsService { get; }
+
     public PlaylistController Controller { get; }
 
     public ShellViewModel Shell { get; }
@@ -68,6 +71,7 @@ internal sealed class AppHarness : IAsyncDisposable
     {
         Shell.Dispose();
         Library.Dispose();
+        SettingsService.Dispose();
         _fetcher.Dispose();
         await Provider.DisposeAsync();
     }

@@ -66,9 +66,28 @@ public sealed class OverlayHost : HwndHost
     /// The overlay never owns keyboard focus, so every key reaches the main window exactly once and
     /// shortcuts work the same whether or not the user just clicked a control.
     /// </summary>
+    /// <summary>
+    /// Let the overlay own keyboard focus (while a text box in it is in use). Turning it off hands focus back
+    /// to the main window.
+    /// </summary>
+    public bool AllowKeyboardFocus
+    {
+        get => _allowFocus;
+        set
+        {
+            _allowFocus = value;
+            if (!value && _parent != 0)
+            {
+                NativeMethods.SetFocus(_parent);
+            }
+        }
+    }
+
+    private bool _allowFocus;
+
     private nint KeepKeyboardInParent(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
     {
-        if (msg == NativeMethods.WmSetFocus && _parent != 0)
+        if (msg == NativeMethods.WmSetFocus && _parent != 0 && !_allowFocus)
         {
             NativeMethods.SetFocus(_parent);
             handled = true;

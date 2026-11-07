@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using Retune.Core.Browse;
 using Retune.Core.Library;
 using Retune.Core.Models;
-using Retune.Core.Persistence;
 using Retune.Core.Playback;
 using Retune.Core.Xtream;
 using Retune.Presentation.Services;
@@ -31,7 +30,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public static readonly TimeSpan SearchDebounce = TimeSpan.FromMilliseconds(200);
 
     private readonly LibraryService _library;
-    private readonly ISettingsStore _settingsStore;
+    private readonly SettingsService _settings;
     private readonly IDialogs _dialogs;
     private readonly IPlayerLauncher _player;
     private readonly TimeProvider _time;
@@ -42,16 +41,15 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private string _appliedSearch = string.Empty;
     private (int Hidden, int Locked, int Pinned, int Unlocked, int Favorites, int Progress, int Recent) _libraryShape;
 
-    public ShellViewModel(PlaylistController playlists, LibraryService library, ISettingsStore settingsStore, IDialogs dialogs, IPlayerLauncher player, TimeProvider time, Action<Action> post)
+    public ShellViewModel(PlaylistController playlists, LibraryService library, SettingsService settings, IDialogs dialogs, IPlayerLauncher player, TimeProvider time, Action<Action> post)
     {
         Playlists = playlists ?? throw new ArgumentNullException(nameof(playlists));
         _library = library ?? throw new ArgumentNullException(nameof(library));
-        _settingsStore = settingsStore;
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _dialogs = dialogs;
         _player = player;
         _time = time;
         _post = post;
-        Settings = settingsStore.Load();
         Content.Layout = Settings.LayoutFor(Section);
         Content.TileSize = Settings.TileSize;
         _libraryShape = Shape(library.State);
@@ -67,8 +65,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public CategoryListViewModel Categories { get; } = new();
 
-    [ObservableProperty]
-    public partial AppSettings Settings { get; private set; }
+    public AppSettings Settings => _settings.Current;
 
     [ObservableProperty]
     public partial LibrarySection Section { get; private set; } = LibrarySection.Live;
@@ -333,14 +330,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void SetLayout(LayoutMode layout)
     {
         Content.Layout = layout;
-        SaveSettings(Settings.WithLayout(Section, layout));
+        _settings.Update(s => s.WithLayout(Section, layout));
     }
 
     [RelayCommand]
     public void SetTileSize(TileSize size)
     {
         Content.TileSize = size;
-        SaveSettings(Settings with { TileSize = size });
+        _settings.Update(s => s with { TileSize = size });
     }
 
     [RelayCommand]
@@ -348,12 +345,6 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         Sort = sort;
         Recompute();
-    }
-
-    public void SaveSettings(AppSettings settings)
-    {
-        Settings = settings;
-        _settingsStore.Save(settings);
     }
 
     // ---- playlists -----------------------------------------------------------------------------

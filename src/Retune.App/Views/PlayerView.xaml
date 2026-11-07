@@ -1,0 +1,256 @@
+<UserControl
+    x:Class="Retune.App.Views.PlayerView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:c="clr-namespace:Retune.App.Controls"
+    xmlns:p="clr-namespace:Retune.Presentation.Player;assembly=Retune.Presentation"
+    x:Name="Root"
+    FontFamily="{StaticResource AppFont}"
+    Foreground="White">
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="Glass" Color="#E0161618" />
+    <SolidColorBrush x:Key="GlassStroke" Color="#26FFFFFF" />
+    <Style x:Key="PlayerButton" TargetType="Button">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Width" Value="38" />
+      <Setter Property="Height" Value="38" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Back" Background="Transparent" CornerRadius="19">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Back" Property="Background" Value="#26FFFFFF" /></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="Back" Property="Background" Value="#40FFFFFF" /></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35" /></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="Chrome" TargetType="FrameworkElement">
+      <Setter Property="Opacity" Value="1" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ControlsVisible}" Value="False">
+          <DataTrigger.EnterActions>
+            <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2" /></Storyboard></BeginStoryboard>
+          </DataTrigger.EnterActions>
+          <DataTrigger.ExitActions>
+            <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2" /></Storyboard></BeginStoryboard>
+          </DataTrigger.ExitActions>
+          <Setter Property="IsHitTestVisible" Value="False" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <!-- Alpha-1 background: invisible, but the whole surface receives the mouse. -->
+  <Grid x:Name="Surface" Background="#01000000" MouseMove="OnActivity" MouseLeftButtonDown="OnSurfaceClick">
+
+    <!-- ================================ tuning card -->
+    <Grid Visibility="{Binding ShowsTuning, Converter={StaticResource BoolToVisibility}}" Background="#E0000000">
+      <StackPanel MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Width="180" Height="112" HorizontalAlignment="Center" Background="#14FFFFFF" CornerRadius="16" Padding="14" Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}}">
+          <Grid>
+            <c:ArtworkImage Source="{Binding Artwork}" Title="{Binding Title}" PixelSize="320" Stretch="Uniform" ShowPlaceholder="False" />
+            <ui:SymbolIcon Symbol="Tv24" FontSize="40" Foreground="#66FFFFFF" Visibility="{Binding Artwork, Converter={StaticResource HasValueToVisibility}, ConverterParameter=invert}" />
+          </Grid>
+        </Border>
+        <Border Width="140" Height="210" HorizontalAlignment="Center" CornerRadius="12" c:RoundedClip.Radius="12" Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+          <c:ArtworkImage Source="{Binding Artwork}" Title="{Binding Title}" Initials="{Binding Title}" PixelSize="480" />
+        </Border>
+        <TextBlock Margin="0,18,0,0" HorizontalAlignment="Center" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="SemiBold" Text="{Binding Title}" TextAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="14" Foreground="#A6FFFFFF" Text="{Binding State.Item.Subtitle}" TextAlignment="Center" />
+        <StackPanel Margin="0,16,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+          <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Foreground="White" />
+          <TextBlock Margin="10,0,0,0" FontSize="14" Foreground="#B3FFFFFF" Text="{Binding TuningStatus}" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <!-- ================================ buffering spinner -->
+    <Border Width="72" Height="72" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#59000000" CornerRadius="36" Visibility="{Binding ShowsSpinner, Converter={StaticResource BoolToVisibility}}">
+      <ui:ProgressRing Width="40" Height="40" IsIndeterminate="True" Foreground="White" />
+    </Border>
+
+    <!-- ================================ error -->
+    <Border MaxWidth="480" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="20" Visibility="{Binding ShowsError, Converter={StaticResource BoolToVisibility}}">
+      <StackPanel>
+        <ui:SymbolIcon HorizontalAlignment="Center" Symbol="Warning24" Filled="True" FontSize="40" Foreground="#FFD54F" />
+        <TextBlock Margin="0,14,0,0" FontSize="15" Text="{Binding State.ErrorMessage}" TextAlignment="Center" TextWrapping="Wrap" />
+        <StackPanel Margin="0,20,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+          <ui:Button Appearance="Primary" Content="Try Again" Command="{Binding RetryCommand}" Focusable="False" />
+          <ui:Button Margin="10,0,0,0" Content="Next Channel" Command="{Binding NextChannelCommand}" Focusable="False" Visibility="{Binding CanNextChannel, Converter={StaticResource BoolToVisibility}}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================================ top bar -->
+    <Grid VerticalAlignment="Top" Style="{StaticResource Chrome}">
+      <Grid.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+          <GradientStop Offset="0" Color="#C0000000" />
+          <GradientStop Offset="1" Color="#00000000" />
+        </LinearGradientBrush>
+      </Grid.Background>
+      <DockPanel Margin="24,22,20,44">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleListCommand}" ToolTip="Channel list (L)" Visibility="{Binding HasList, Converter={StaticResource BoolToVisibility}}">
+            <ui:SymbolIcon Symbol="TextBulletListLtr24" FontSize="20" />
+          </Button>
+          <Button Style="{StaticResource PlayerButton}" Margin="6,0,0,0" Command="{Binding CloseCommand}" ToolTip="Back to browsing (Esc)">
+            <ui:SymbolIcon Symbol="ChevronDown24" FontSize="22" />
+          </Button>
+        </StackPanel>
+        <Border Width="64" Height="40" Margin="0,0,14,0" Visibility="{Binding Artwork, Converter={StaticResource HasValueToVisibility}}">
+          <c:ArtworkImage Source="{Binding Artwork}" Title="{Binding Title}" PixelSize="160" Stretch="Uniform" ShowPlaceholder="False" />
+        </Border>
+        <StackPanel VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <Border Margin="0,0,10,0" Padding="6,1" VerticalAlignment="Center" Background="{StaticResource LiveBrush}" CornerRadius="4" Visibility="{Binding IsLive, Converter={StaticResource BoolToVisibility}}">
+              <TextBlock FontSize="11" FontWeight="Black" Text="LIVE" />
+            </Border>
+            <TextBlock FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+            <Border Margin="10,0,0,0" Padding="5,1" VerticalAlignment="Center" BorderBrush="#B3FFFFFF" BorderThickness="1" CornerRadius="4" Visibility="{Binding QualityLabel, Converter={StaticResource HasValueToVisibility}}">
+              <TextBlock FontSize="11" FontWeight="Bold" Text="{Binding QualityLabel}" />
+            </Border>
+            <StackPanel Margin="12,0,0,0" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding NoAudio, Converter={StaticResource BoolToVisibility}}" ToolTip="The provider is sending this channel without a sound track.">
+              <ui:SymbolIcon Symbol="SpeakerMute24" FontSize="14" Foreground="#FFB74D" />
+              <TextBlock Margin="5,0,0,0" FontSize="12" Foreground="#FFB74D" Text="No audio in this stream" />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Margin="0,4,0,0" FontSize="14" Foreground="#CCFFFFFF" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+          <TextBlock FontSize="12" Foreground="#99FFFFFF" Text="{Binding NextText}" Visibility="{Binding NextText, Converter={StaticResource HasValueToVisibility}}" />
+        </StackPanel>
+      </DockPanel>
+    </Grid>
+
+    <!-- ================================ bottom bar -->
+    <Border Margin="24,0,24,24" Padding="18,12,18,10" VerticalAlignment="Bottom" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="18" Style="{StaticResource Chrome}">
+      <StackPanel>
+        <DockPanel Margin="0,0,0,6" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock DockPanel.Dock="Left" MinWidth="56" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="#E6FFFFFF" Text="{Binding PositionText}" VerticalAlignment="Center" />
+          <TextBlock DockPanel.Dock="Right" MinWidth="64" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="#E6FFFFFF" Text="{Binding RemainingText}" TextAlignment="Right" VerticalAlignment="Center" />
+          <Slider x:Name="Scrubber" Margin="10,0" Minimum="0" Maximum="{Binding Duration, Mode=OneWay}" Focusable="False" IsMoveToPointEnabled="True"
+                  PreviewMouseLeftButtonDown="OnScrubStart" PreviewMouseLeftButtonUp="OnScrubEnd" />
+        </DockPanel>
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding PreviousCommand}" ToolTip="Previous (↑)" IsEnabled="{Binding State.CanGoPrevious}"><ui:SymbolIcon Symbol="Previous24" Filled="True" FontSize="18" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding SeekBackCommand}" ToolTip="Back 10 seconds (←)" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="SkipBack1024" FontSize="20" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Width="46" Height="46" Command="{Binding TogglePauseCommand}" ToolTip="Play/Pause (Space)">
+              <ui:SymbolIcon x:Name="PlayIcon" Symbol="Pause24" Filled="True" FontSize="26" />
+            </Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding SeekForwardCommand}" ToolTip="Forward 10 seconds (→)" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="SkipForward1024" FontSize="20" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding NextCommand}" ToolTip="Next (↓)" IsEnabled="{Binding State.CanGoNext}"><ui:SymbolIcon Symbol="Next24" Filled="True" FontSize="18" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Margin="10,0,0,0" Command="{Binding ToggleMuteCommand}" ToolTip="Mute (M)">
+              <ui:SymbolIcon x:Name="VolumeIcon" Symbol="Speaker224" FontSize="20" />
+            </Button>
+            <Slider x:Name="VolumeSlider" Width="100" Margin="4,0" VerticalAlignment="Center" Minimum="0" Maximum="100" Focusable="False" IsMoveToPointEnabled="True" ValueChanged="OnVolumeSlider" />
+            <TextBlock Width="40" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="#B3FFFFFF" Text="{Binding VolumeText}" VerticalAlignment="Center" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <TextBlock Margin="0,0,12,0" FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="#80FFFFFF" Text="{Binding Readout}" VerticalAlignment="Center" />
+            <Button x:Name="AudioButton" Style="{StaticResource PlayerButton}" Click="OnAudioMenu" ToolTip="Audio track" Visibility="{Binding HasAudioChoice, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="DataBarVertical24" FontSize="20" /></Button>
+            <Button x:Name="SubtitleButton" Style="{StaticResource PlayerButton}" Click="OnSubtitleMenu" ToolTip="Subtitles (C turns them on/off)" Visibility="{Binding HasSubtitles, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon x:Name="SubtitleIcon" Symbol="ClosedCaption24" FontSize="20" /></Button>
+            <Button x:Name="SpeedButton" Style="{StaticResource PlayerButton}" Click="OnSpeedMenu" ToolTip="Playback speed ([ slower · ] faster · \ normal)" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="TopSpeed24" FontSize="20" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleStatsCommand}" ToolTip="Stats for nerds (I)"><ui:SymbolIcon Symbol="Info24" FontSize="20" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleFullScreenCommand}" ToolTip="Full screen (F)"><ui:SymbolIcon Symbol="FullScreenMaximize24" FontSize="20" /></Button>
+          </StackPanel>
+          <Border />
+        </DockPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================================ list panel -->
+    <Border Width="340" Margin="0,90,24,110" Padding="16" HorizontalAlignment="Right" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="18" Visibility="{Binding ListVisible, Converter={StaticResource BoolToVisibility}}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" FontFamily="{StaticResource DisplayFont}" FontSize="16" FontWeight="SemiBold" Text="{Binding State.LineupTitle}" TextTrimming="CharacterEllipsis" />
+        <TextBox x:Name="ListFilterBox" DockPanel.Dock="Top" Margin="0,10,0,10" Text="{Binding ListFilter, UpdateSourceTrigger=PropertyChanged}" PreviewKeyDown="OnListFilterKey" />
+        <ListBox x:Name="ListRowsBox" ItemsSource="{Binding ListRows}" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" VirtualizingPanel.IsVirtualizing="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem">
+              <Setter Property="Focusable" Value="False" />
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="ListBoxItem"><ContentPresenter /></ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type p:LineupRow}">
+              <Button Focusable="False" Cursor="Hand" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" Command="{Binding DataContext.JumpToCommand, ElementName=Root}" CommandParameter="{Binding}">
+                <Button.Template>
+                  <ControlTemplate TargetType="Button">
+                    <Border x:Name="Back" Margin="0,1" Padding="8" Background="Transparent" CornerRadius="8">
+                      <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Back" Property="Background" Value="#1FFFFFFF" /></Trigger>
+                      <DataTrigger Binding="{Binding IsCurrent}" Value="True"><Setter TargetName="Back" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" /></DataTrigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Button.Template>
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Left" Width="32" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="#99FFFFFF" Text="{Binding Number}" VerticalAlignment="Center" />
+                  <Border DockPanel.Dock="Left" Width="44" Height="28" Margin="0,0,10,0" Visibility="{Binding Item.Artwork, Converter={StaticResource HasValueToVisibility}}">
+                    <c:ArtworkImage Source="{Binding Item.Artwork}" Title="{Binding Label}" PixelSize="100" Stretch="Uniform" ShowPlaceholder="False" />
+                  </Border>
+                  <TextBlock FontSize="13" Foreground="White" Text="{Binding Label}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="36" VerticalAlignment="Center" />
+                </DockPanel>
+              </Button>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- ================================ stats -->
+    <Border Margin="24,120,0,0" Padding="14" HorizontalAlignment="Left" VerticalAlignment="Top" Background="#B8000000" CornerRadius="12" Visibility="{Binding StatsVisible, Converter={StaticResource BoolToVisibility}}">
+      <ItemsControl ItemsSource="{Binding StatsRows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="{x:Type p:StatRow}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="#99FFFFFF" Text="{Binding Label}" />
+              <TextBlock Grid.Column="1" FontFamily="{StaticResource MonoFont}" FontSize="12" Foreground="White" Text="{Binding Value}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+
+    <!-- ================================ up next -->
+    <Border Width="380" Margin="0,0,28,120" Padding="14" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="16" Visibility="{Binding UpNextSeconds, Converter={StaticResource HasValueToVisibility}}">
+      <DockPanel>
+        <Border DockPanel.Dock="Left" Width="120" Height="68" Margin="0,0,12,0" CornerRadius="8" c:RoundedClip.Radius="8">
+          <c:ArtworkImage Source="{Binding UpNextItem.Artwork}" Title="{Binding UpNextItem.Title}" PixelSize="300" />
+        </Border>
+        <StackPanel>
+          <TextBlock FontSize="12" Foreground="#B3FFFFFF" Text="{Binding UpNextSeconds, StringFormat=Up next in {0}s}" />
+          <TextBlock Margin="0,2,0,8" FontSize="15" FontWeight="SemiBold" Text="{Binding UpNextItem.Subtitle}" TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" />
+          <StackPanel Orientation="Horizontal">
+            <ui:Button Appearance="Primary" Content="Play Now" Command="{Binding PlayNextNowCommand}" Focusable="False" />
+            <ui:Button Margin="8,0,0,0" Appearance="Transparent" Content="Cancel" Command="{Binding CancelUpNextCommand}" Focusable="False" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ================================ OSD flash and number entry -->
+    <Border Padding="18,10" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource Glass}" CornerRadius="14" Visibility="{Binding FlashText, Converter={StaticResource HasValueToVisibility}}" IsHitTestVisible="False">
+      <TextBlock FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="SemiBold" Text="{Binding FlashText}" />
+    </Border>
+    <Border Margin="0,100,40,0" Padding="18,8" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{StaticResource Glass}" CornerRadius="12" Visibility="{Binding NumberEntry, Converter={StaticResource HasValueToVisibility}}" IsHitTestVisible="False">
+      <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="40" FontWeight="Bold" Text="{Binding NumberEntry, StringFormat={}{0}_}" />
+    </Border>
+  </Grid>
+</UserControl>

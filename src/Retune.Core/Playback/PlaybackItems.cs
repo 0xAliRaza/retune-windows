@@ -15,7 +15,7 @@ public sealed class PlaybackItems(XtreamUrls? urls, string liveExtension, Func<s
         var url = channel.DirectUrl ?? urls?.Live(channel.Id, liveExtension);
         return url is null
             ? null
-            : new PlaybackItem(channel.Id, ContentKind.Live, channel.Name, categoryName(channel.CategoryId)?.Trim(), url, channel.Logo, StreamId: channel.Id);
+            : new PlaybackItem(channel.Id, ContentKind.Live, channel.Name, categoryName(channel.CategoryId)?.Trim(), url, channel.Logo, StreamId: channel.Id, Number: channel.Number);
     }
 
     public PlaybackItem? Movie(Movie movie)

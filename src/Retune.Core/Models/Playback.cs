@@ -12,7 +12,8 @@ public sealed record PlaybackItem(
     string Url,
     Uri? Artwork = null,
     string? StreamId = null,
-    string? ParentId = null)
+    string? ParentId = null,
+    int? Number = null)
 {
     public bool IsLive => Kind == ContentKind.Live;
 }

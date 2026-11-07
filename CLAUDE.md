@@ -23,5 +23,6 @@ The app exe is at `src/Retune.App/bin/Debug/net10.0-windows/win-x64/Retune.exe`.
 ## Manual and visual testing on this machine
 
 - The user has two displays. **Never test on the 4K primary display** (`DISPLAY1`). Use the laptop's internal display, which is 1920×1200 at 125% with physical origin (3840, 546). Look the bounds up again if the layout may have changed.
-- Always run test builds with `--silent --no-activate --window <bounds on the internal display>`, and drive them with `--spike-steps` rather than keystrokes. Never take the user's keyboard focus or play sound.
+- Always run test builds with `--mute --no-activate --window <bounds on the internal display>` (plus `--demo <fake provider url> --autoplay` to play without input). Never send keystrokes, take the user's keyboard focus or play sound.
+- For UI checks without any window, prefer `--render <folder> --demo <url>`, which saves the real views to PNG off-screen.
 - Capture screenshots with a per-monitor-v2 DPI-aware process (`SetProcessDpiAwarenessContext(-4)`) so the coordinates are real pixels.

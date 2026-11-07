@@ -40,6 +40,16 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     internal static partial nint SetFocus(nint hwnd);
 
+    [LibraryImport("user32.dll")]
+    internal static partial uint GetDoubleClickTime();
+
+    internal const uint EsContinuous = 0x80000000;
+    internal const uint EsSystemRequired = 0x00000001;
+    internal const uint EsDisplayRequired = 0x00000002;
+
+    [LibraryImport("kernel32.dll")]
+    internal static partial uint SetThreadExecutionState(uint flags);
+
     [LibraryImport("user32.dll", EntryPoint = "FindWindowW", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint FindWindow(string? className, string windowName);
 
