@@ -1,0 +1,32 @@
+<ui:FluentWindow
+    x:Class="Retune.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:video="clr-namespace:Retune.App.Video"
+    xmlns:spike="clr-namespace:Retune.App.Spike"
+    Title="Retune"
+    Width="1360"
+    Height="860"
+    MinWidth="980"
+    MinHeight="620"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <ui:TitleBar x:Name="AppTitleBar" Title="Retune" Grid.Row="0" />
+
+    <Grid Grid.Row="1" Background="Black">
+      <video:VideoHost x:Name="Video" />
+      <video:OverlayHost x:Name="Overlay">
+        <spike:SpikeOverlay x:Name="Controls" />
+      </video:OverlayHost>
+    </Grid>
+  </Grid>
+</ui:FluentWindow>

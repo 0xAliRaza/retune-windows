@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+TestResults/
+*.binlog
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# Native dependencies fetched by tools/fetch-libmpv.ps1 and tools/make-test-media.ps1
+third_party/libmpv/
+tests/fixtures/media/
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

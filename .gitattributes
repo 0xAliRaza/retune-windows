@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF so they behave in every Windows shell
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.ico binary
+*.dll binary
+*.7z binary
+*.ts binary
+*.mp4 binary

@@ -1,0 +1,52 @@
+<UserControl
+    x:Class="Retune.App.Spike.SpikeOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+  <!-- Alpha-1 background: invisible, but makes the whole overlay receive the mouse. -->
+  <Grid x:Name="Root" Background="#01000000">
+    <Grid x:Name="Chrome">
+      <Border
+          Margin="24,24,24,0"
+          Padding="14,8"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top"
+          Background="#B3000000"
+          CornerRadius="10">
+        <StackPanel Orientation="Horizontal">
+          <Border Margin="0,0,10,0" Padding="6,1" Background="#E53935" CornerRadius="4" VerticalAlignment="Center">
+            <TextBlock FontSize="11" FontWeight="Black" Foreground="White" Text="SPIKE" />
+          </Border>
+          <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+
+      <Border
+          Margin="24"
+          Padding="18,14"
+          VerticalAlignment="Bottom"
+          Background="#D91C1C1C"
+          BorderBrush="#33FFFFFF"
+          BorderThickness="1"
+          CornerRadius="18">
+        <DockPanel LastChildFill="True">
+          <ui:Button x:Name="PlayPauseButton" Focusable="False" Appearance="Transparent" Click="OnPlayPause" ToolTip="Play/Pause (Space)" Width="44" Height="40">
+            <ui:SymbolIcon x:Name="PlayPauseIcon" Symbol="Pause24" FontSize="22" Foreground="White" />
+          </ui:Button>
+          <ui:Button Focusable="False" Appearance="Transparent" Click="OnFullScreen" ToolTip="Full screen (F)" Width="44" Height="40" Margin="6,0,0,0">
+            <ui:SymbolIcon Symbol="FullScreenMaximize24" FontSize="20" Foreground="White" />
+          </ui:Button>
+          <ui:Button Focusable="False" Appearance="Caution" Click="OnBlockUi" Content="Block UI 3 s" Margin="12,0,0,0" ToolTip="Spike check: video must keep playing" />
+          <TextBlock
+              x:Name="StatsText"
+              Margin="16,0,0,0"
+              VerticalAlignment="Center"
+              FontFamily="Consolas"
+              FontSize="13"
+              Foreground="#CCFFFFFF"
+              TextTrimming="CharacterEllipsis" />
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

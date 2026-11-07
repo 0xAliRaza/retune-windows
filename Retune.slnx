@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Retune.App/Retune.App.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Retune.Mpv/Retune.Mpv.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Retune.Mpv.Tests/Retune.Mpv.Tests.csproj" />
+  </Folder>
+</Solution>

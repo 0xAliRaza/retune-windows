@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache libmpv
+        uses: actions/cache@v4
+        with:
+          path: third_party/libmpv
+          key: libmpv-${{ hashFiles('tools/fetch-libmpv.ps1') }}
+
+      - name: Fetch libmpv (pinned, hash-checked)
+        run: ./tools/fetch-libmpv.ps1
+
+      - name: Install FFmpeg
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Generate test media
+        run: ./tools/make-test-media.ps1
+
+      - name: Build (warnings are errors)
+        run: dotnet build Retune.slnx -c Release
+
+      - name: Test
+        run: dotnet test --solution Retune.slnx -c Release --no-build
