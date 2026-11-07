@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Threading;
+using Retune.Core.Diagnostics;
 using Retune.Core.Playback;
+using Retune.Infrastructure.Diagnostics;
 using Retune.Core.Sources;
 using Retune.Mpv;
 using Retune.Presentation.Player;
@@ -30,6 +32,7 @@ public sealed class AppContainer : IDisposable
         ArgumentNullException.ThrowIfNull(dispatcher);
         Paths = AppPaths.ForCurrentUser();
         Time = TimeProvider.System;
+        Log = new FileAppLog(Paths.LogDirectory, Time);
         void Post(Action action) => dispatcher.BeginInvoke(action);
 
         var data = new JsonFileStore(Paths.DataDirectory, Time);
@@ -45,7 +48,7 @@ public sealed class AppContainer : IDisposable
 
         Library = new LibraryService(new LibraryStore(data), Time);
         var source = new CatalogSource(_apiFetcher, new LocalFileReader(), secrets, Time);
-        Playlists = new PlaylistController(playlists, _catalogs, secrets, Settings, source, Library, Time);
+        Playlists = new PlaylistController(playlists, _catalogs, secrets, Settings, source, Library, Time, Log);
         Dialogs = new WpfDialogs(this);
         Player = new PlayerLauncher();
         Playlists.ActivePlaylistChanging += (_, _) => Player.StopForPlaylistChange();
@@ -55,9 +58,11 @@ public sealed class AppContainer : IDisposable
     public AppPaths Paths { get; }
 
     /// <summary>Deleting thousands of cached files must not freeze the window.</summary>
-    private void ClearArtworkInBackground() => _ = Task.Run(Artwork.Clear);
+    private void ClearArtworkInBackground() => Task.Run(Artwork.Clear).Forget(Log, "artwork cache clear");
 
     public TimeProvider Time { get; }
+
+    public IAppLog Log { get; }
 
     public SettingsService Settings { get; }
 

@@ -55,10 +55,18 @@ public sealed class FakeProviderServer : IAsyncDisposable
             app.MapGet($"/{kind}/{{user}}/{{password}}/{{file}}", (string user, string password) =>
                 user == options.Username && password == options.Password ? Stream(options, kind) : Results.StatusCode(401));
         }
+        var art = new System.Collections.Concurrent.ConcurrentDictionary<string, byte[]>(StringComparer.Ordinal);
         app.MapGet("/art/{kind}/{name}", (string kind, string name) =>
         {
-            var (w, h) = kind switch { "logo" => (160, 100), "backdrop" => (640, 360), "still" => (320, 180), _ => (200, 300) };
-            return Results.Bytes(PngArt.Gradient($"{kind}/{name}", w, h), "image/png");
+            // A movie's poster and backdrop share a scene: the seed is the name, the kind only sets the shape.
+            var image = art.GetOrAdd($"{kind}/{name}", _ => kind switch
+            {
+                "logo" => PngArt.Logo(name, 320, 200),
+                "backdrop" => PngArt.Scene(name, 1280, 720),
+                "still" => PngArt.Scene(name, 480, 270),
+                _ => PngArt.Scene(name, 400, 600),
+            });
+            return Results.Bytes(image, "image/png");
         });
 
         await app.StartAsync().ConfigureAwait(false);

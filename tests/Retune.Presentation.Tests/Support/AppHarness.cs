@@ -23,7 +23,7 @@ internal sealed class AppHarness : IAsyncDisposable
         Library = new LibraryService(LibraryStore, Time);
         SettingsService = new SettingsService(Settings, Time);
         var source = new CatalogSource(_fetcher, new LocalFileReader(), Secrets, TimeProvider.System);
-        Controller = new PlaylistController(PlaylistStore, Catalogs, Secrets, SettingsService, source, Library, Time);
+        Controller = new PlaylistController(PlaylistStore, Catalogs, Secrets, SettingsService, source, Library, Time, Log);
         Shell = new ShellViewModel(Controller, Library, SettingsService, Dialogs, Player, Time, action => action(), () => new SettingsViewModel(SettingsService, Library, Controller, Dialogs, () => ArtworkClears++));
         Controller.ActivePlaylistChanging += (_, _) => Player.StopForPlaylistChange();
     }
@@ -41,6 +41,8 @@ internal sealed class AppHarness : IAsyncDisposable
     public MemoryStores.Secrets Secrets { get; } = new();
 
     public MemoryStores.Settings Settings { get; } = new();
+
+    public MemoryLog Log { get; } = new();
 
     public FakeDialogs Dialogs { get; } = new();
 
@@ -112,8 +114,15 @@ internal static class MemoryStores
         public Task<Catalog?> LoadAsync(Guid playlistId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Saved.GetValueOrDefault(playlistId));
 
+        public bool FailSaves { get; set; }
+
         public Task SaveAsync(Guid playlistId, Catalog catalog)
         {
+            if (FailSaves)
+            {
+                return Task.FromException(new IOException("disk full"));
+            }
+
             Saved[playlistId] = catalog;
             return Task.CompletedTask;
         }
@@ -143,6 +152,24 @@ internal static class MemoryStores
         public AppSettings Load() => Saved;
 
         public void Save(AppSettings settings) => Saved = settings;
+    }
+}
+
+/// <summary>Collects log entries so tests can assert a failure was reported.</summary>
+internal sealed class MemoryLog : Core.Diagnostics.IAppLog
+{
+    public List<(string Level, string Area, Exception? Exception)> Entries { get; } = [];
+
+    public void Warning(string area, string message, Exception? exception = null) => Add("WARN", area, exception);
+
+    public void Failure(string area, string message, Exception? exception = null) => Add("ERROR", area, exception);
+
+    private void Add(string level, string area, Exception? exception)
+    {
+        lock (Entries)
+        {
+            Entries.Add((level, area, exception));
+        }
     }
 }
 

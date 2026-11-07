@@ -198,6 +198,20 @@ public sealed class ShellTests
     }
 
     [Fact]
+    public async Task A_failed_catalog_cache_save_is_logged_and_browsing_still_works()
+    {
+        await using var app = await AppHarness.StartAsync();
+        app.Catalogs.FailSaves = true;
+
+        await app.AddDemoAsync();
+
+        Assert.NotEmpty(app.Shell.Content.Items);
+        var entry = Assert.Single(app.Log.Entries);
+        Assert.Equal(("ERROR", "catalog cache save"), (entry.Level, entry.Area));
+        Assert.IsType<IOException>(entry.Exception);
+    }
+
+    [Fact]
     public async Task Parental_journey_create_lock_lockout_unlock_relock_and_remove()
     {
         await using var app = await AppHarness.StartAsync();

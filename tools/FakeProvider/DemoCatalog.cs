@@ -67,7 +67,7 @@ internal sealed class DemoCatalog
         series_id = 9000 + i,
         cover = $"{baseUrl}/art/poster/s{i}.png",
         backdrop_path = new[] { $"{baseUrl}/art/backdrop/s{i}.png" },
-        plot = "A made-up story for demos and tests.",
+        plot = Plot(i + 3),
         genre = SeriesCategories[i % SeriesCategories.Length],
         releaseDate = $"{2010 + (i % 15)}-0{1 + (i % 9)}-15",
         rating = ((i * 13 % 50) / 10.0 + 5).ToString("0.0", CultureInfo.InvariantCulture),
@@ -88,11 +88,11 @@ internal sealed class DemoCatalog
                 season = s,
                 title = $"Chapter {e}",
                 container_extension = "mp4",
-                info = new { plot = "Things happen, then other things happen.", duration_secs = 2700, movie_image = $"{baseUrl}/art/still/{seriesId}-{s}-{e}.png" },
+                info = new { plot = EpisodePlot((s * 31) + e), duration_secs = 2700, movie_image = $"{baseUrl}/art/still/{seriesId}-{s}-{e}.png" },
             }).ToArray());
         return new
         {
-            info = new { name = Title(i + 7), plot = "A made-up story for demos and tests.", cast = "A. Actor, B. Performer", director = "C. Director", genre = "Drama", releasedate = "2021-03-04", episode_run_time = "45", rating_5based = 4.1, cover = $"{baseUrl}/art/poster/s{i}.png", backdrop_path = new[] { $"{baseUrl}/art/backdrop/s{i}.png" } },
+            info = new { name = Title(i + 7), plot = Plot(i + 3), cast = "A. Actor, B. Performer", director = "C. Director", genre = "Drama", releasedate = "2021-03-04", episode_run_time = "45", rating_5based = 4.1, cover = $"{baseUrl}/art/poster/s{i}.png", backdrop_path = new[] { $"{baseUrl}/art/backdrop/s{i}.png" } },
             seasons = Enumerable.Range(1, seasons).Select(s => new { season_number = s, name = $"Season {s}", cover = $"{baseUrl}/art/poster/s{i}.png" }),
             episodes,
         };
@@ -102,7 +102,7 @@ internal sealed class DemoCatalog
     {
         info = new
         {
-            plot = "A made-up film for demos and tests. Nothing here is real.",
+            plot = Plot(vodId),
             cast = "A. Actor, B. Performer",
             director = "C. Director",
             genre = VodCategories[(vodId - 5000) % VodCategories.Length],
@@ -141,6 +141,37 @@ internal sealed class DemoCatalog
 
         return string.Join('\n', lines);
     }
+
+    // Invented synopses for demo screenshots; nothing here refers to a real work.
+    private static readonly string[] Plots =
+    [
+        "A lighthouse keeper finds a logbook that predicts tomorrow's storms, and one entry that predicts her own.",
+        "Two rival cartographers race across an uncharted valley, each hiding why the map matters so much.",
+        "When the city's power fails for a week, a night-shift radio host becomes the only voice anyone trusts.",
+        "A retired composer agrees to teach one last student, who seems to already know every unfinished piece.",
+        "An orchard that blooms in winter draws a botanist, a con artist and a family with something to hide.",
+        "A courier who never opens a parcel is handed one addressed to himself, ten years in the future.",
+        "On the last train across the frontier, strangers discover they all bought tickets for the same reason.",
+        "A small-town baker enters a national contest and accidentally exposes the judges' oldest secret.",
+        "Deep in a research station, the night crew starts receiving messages from the day crew who left.",
+        "A painter restoring a church mural uncovers a second picture underneath, and it is still changing.",
+        "Three sisters reopen their late father's cinema and find the films in the vault have no credits.",
+        "A detective with no memory of the last year must solve the case he apparently closed.",
+    ];
+
+    private static readonly string[] EpisodePlots =
+    [
+        "An unexpected visitor arrives with a warning nobody wants to hear.",
+        "Old allies meet again, and only one of them is telling the truth.",
+        "A plan comes together, until the one detail nobody checked.",
+        "The storm cuts the town off, and tempers run short.",
+        "A letter from the past changes what everyone thought they knew.",
+        "Everything rides on a single night, and a single choice.",
+    ];
+
+    private static string Plot(int i) => Plots[i % Plots.Length];
+
+    private static string EpisodePlot(int i) => EpisodePlots[i % EpisodePlots.Length];
 
     private static string Title(int i) => $"{TitleA[i % TitleA.Length]} {TitleB[(i / TitleA.Length + i) % TitleB.Length]}";
 

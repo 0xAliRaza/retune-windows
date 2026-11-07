@@ -27,11 +27,20 @@ public partial class App : Application
         }
 
         _container = new AppContainer(Dispatcher);
+        var log = _container.Log;
         DispatcherUnhandledException += (_, args) =>
         {
             // Never lose the library on a crash; the exception still surfaces.
+            log.Failure("crash", "Unhandled exception on the UI thread.", args.Exception);
             _container?.Library.Flush();
             args.Handled = false;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            log.Failure("crash", "Unhandled exception.", args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            log.Failure("background", "A background task failed and nobody observed it.", args.Exception.GetBaseException());
+            args.SetObserved();
         };
 
         if (dev.RenderFolder is { } folder)

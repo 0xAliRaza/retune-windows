@@ -12,6 +12,9 @@ public sealed record AppPaths(string DataDirectory, string CacheDirectory)
 
     public string ArtworkDirectory => Path.Combine(CacheDirectory, "Artwork");
 
+    /// <summary>Machine-local, beside the cache: %LOCALAPPDATA%\Retune\Logs.</summary>
+    public string LogDirectory => Path.Combine(Path.GetDirectoryName(CacheDirectory) ?? CacheDirectory, "Logs");
+
     /// <summary>%APPDATA%\Retune and %LOCALAPPDATA%\Retune\Cache, unless <c>RETUNE_DATA_DIR</c> is set.</summary>
     public static AppPaths ForCurrentUser()
     {

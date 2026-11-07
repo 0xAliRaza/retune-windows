@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Retune.Core.Diagnostics;
 using Retune.Core.Errors;
 using Retune.Core.Models;
 using Retune.Core.Persistence;
@@ -20,7 +21,8 @@ public sealed partial class PlaylistController(
     SettingsService settings,
     CatalogSource source,
     LibraryService library,
-    TimeProvider time) : ObservableObject
+    TimeProvider time,
+    IAppLog log) : ObservableObject
 {
     public const string DownloadingMessage = "Downloading channels, movies and series…";
 
@@ -134,7 +136,7 @@ public sealed partial class PlaylistController(
         Playlists = [.. Playlists.Where(p => p.Id != playlistId)];
         playlists.Save(Playlists);
         secrets.Remove(playlistId);
-        _ = cache.DeleteAsync(playlistId);
+        cache.DeleteAsync(playlistId).Forget(log, "catalog cache delete");
         library.Update(s => Core.Library.LibraryOperations.RemoveAll(s, playlistId));
         library.Flush();
 
@@ -203,7 +205,7 @@ public sealed partial class PlaylistController(
             Status = LoadStatus.Ready;
             if (cached.IsStale(time.GetUtcNow(), Catalog.MaxAge))
             {
-                _ = RefreshAsync();
+                RefreshAsync().Forget(log, "background refresh");
             }
         }
         else
@@ -230,7 +232,7 @@ public sealed partial class PlaylistController(
                 return;
             }
 
-            _ = cache.SaveAsync(playlist.Id, catalog);
+            cache.SaveAsync(playlist.Id, catalog).Forget(log, "catalog cache save");
             var index = await CatalogIndex.BuildAsync(catalog).ConfigureAwait(true);
             if (generation != _generation)
             {
