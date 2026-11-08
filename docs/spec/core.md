@@ -21,7 +21,7 @@ These are requirements, not implementation notes:
 6. Never log URLs, usernames or passwords.
 7. Data files are written **atomically** and kept **private to the user** (macOS uses folders `0700` and files `0600`). *Windows: put them under the user profile and restrict the ACL to the current user.*
 8. No analytics, telemetry, crash reporting, update checks, or any network destination other than the user's provider and the artwork hosts their playlist names.
-9. mpv runs with `load-scripts=no`, `ytdl=no` and `load-unsafe-playlists=no`.
+9. mpv runs with `load-scripts=no`, `ytdl=no` and `load-unsafe-playlists=no`. *Windows: also `tls-verify=yes` with `tls-ca-file` exported from the Windows trusted root stores at start. A rejected certificate fails at once (no reconnects) with a message pointing to the "Allow unverified HTTPS streams" setting, which is off by default.*
 10. Live streams must never use FFmpeg `reconnect_streamed`. Live recovery is done by the app reloading the stream (see section 9.1).
 11. Resume progress is saved only after the first video frame has been shown. Otherwise a failed start would overwrite a real resume point.
 

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Security.Cryptography;
 using System.Windows;
 using System.Windows.Threading;
 using Retune.Core.Diagnostics;
@@ -25,6 +27,8 @@ public sealed class AppContainer : IDisposable
 
     /// <summary>mpv warnings kept per minute (a broken stream can print hundreds a second).</summary>
     private const int MpvLogLinesPerMinute = 30;
+
+    private const string TrustedCertificatesFile = "trusted-roots.pem";
 
     private readonly HttpFetcher _apiFetcher;
     private readonly HttpFetcher _artworkFetcher;
@@ -59,6 +63,25 @@ public sealed class AppContainer : IDisposable
     }
 
     public AppPaths Paths { get; }
+
+    /// <summary>
+    /// Refreshes the roots mpv checks HTTPS streams against from Windows' stores, on every start so Windows Update's
+    /// changes apply. Without the file every HTTPS stream is refused (never played unverified) and says why.
+    /// </summary>
+    private string? WriteTrustedCertificates()
+    {
+        var path = Path.Combine(Paths.DataDirectory, TrustedCertificatesFile);
+        try
+        {
+            SystemTrustStore.WriteBundle(path);
+            return path;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            Log.Failure("player", "Couldn't export Windows' trusted certificates; HTTPS streams can't be verified.", ex);
+            return null;
+        }
+    }
 
     /// <summary>Deleting thousands of cached files must not freeze the window.</summary>
     private void ClearArtworkInBackground() => Task.Run(Artwork.Clear).Forget(Log, "artwork cache clear");
@@ -102,7 +125,8 @@ public sealed class AppContainer : IDisposable
         ArgumentNullException.ThrowIfNull(dispatcher);
         void Post(Action action) => dispatcher.BeginInvoke(action);
         var volume = (int)Core.Playback.VolumeLevel.Clamped(Settings.Current.Volume);
-        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent), logLevel: "warn");
+        var options = MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent, WriteTrustedCertificates());
+        _mpv = MpvClient.Create(options, logLevel: "warn");
         var mpvLogLimit = new LogRateLimiter(MpvLogLinesPerMinute, TimeSpan.FromMinutes(1), Time);
         _mpv.EventReceived += (_, e) =>
         {

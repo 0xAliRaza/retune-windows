@@ -69,6 +69,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         var stored = settings.Current;
         SubtitleStyle = stored.SubtitleStyle.Clamped();
         _session.AutoplayEnabled = stored.AutoplayNext;
+        _engine.SetVerifyCertificates(!stored.AllowUnverifiedHttps);
         _engine.SetVolume(stored.Volume);
         _engine.ApplySubtitleStyle(SubtitleStyle);
 
@@ -568,7 +569,11 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _settings.Changed -= OnSettingsChanged;
     }
 
-    private void OnSettingsChanged(object? sender, EventArgs e) => _session.AutoplayEnabled = _settings.Current.AutoplayNext;
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        _session.AutoplayEnabled = _settings.Current.AutoplayNext;
+        _engine.SetVerifyCertificates(!_settings.Current.AllowUnverifiedHttps);
+    }
 
     partial void OnListFilterChanged(string value) => RebuildList();
 

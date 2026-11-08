@@ -86,6 +86,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         set => _settings.Update(s => s with { AutoplayNext = value });
     }
 
+    public bool AllowUnverifiedHttps
+    {
+        get => _settings.Current.AllowUnverifiedHttps;
+        set => _settings.Update(s => s with { AllowUnverifiedHttps = value });
+    }
+
     public bool HasPin => _library.State.PinHash is not null;
 
     public bool HasActivePlaylist => _playlists.Active is not null;
@@ -180,6 +186,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(SelectedLiveFormat));
         OnPropertyChanged(nameof(AutoplayNext));
+        OnPropertyChanged(nameof(AllowUnverifiedHttps));
         OnPropertyChanged(nameof(SelectedZoom));
     }
 

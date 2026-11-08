@@ -209,6 +209,7 @@ public sealed class StorageTests : IDisposable
             TileSize = TileSize.Large,
             LiveFormat = LiveFormat.Hls,
             AutoplayNext = false,
+            AllowUnverifiedHttps = true,
             Volume = 42,
             SubtitleStyle = new SubtitleStyle(1.4, 80, Background: true),
         };
@@ -218,7 +219,7 @@ public sealed class StorageTests : IDisposable
 
         File.WriteAllText(_temp.File(SettingsStore.FileName), """
             {"layout.live":"Holographic","layout.movies":"Grid","layout.tileSize":"7","player.volume":"loud",
-             "player.subtitleStyle":{"scale":9,"position":10},"player.autoplayNext":"yes","activePlaylist":"nope"}
+             "player.subtitleStyle":{"scale":9,"position":10},"player.autoplayNext":"yes","player.allowUnverifiedHttps":"yes","activePlaylist":"nope"}
             """);
         var tolerant = store.Load();
         Assert.Equal(LayoutMode.List, tolerant.LiveLayout);
@@ -228,6 +229,7 @@ public sealed class StorageTests : IDisposable
         Assert.Equal(2.5, tolerant.SubtitleStyle.Scale);
         Assert.Equal(50, tolerant.SubtitleStyle.Position);
         Assert.True(tolerant.AutoplayNext);
+        Assert.False(tolerant.AllowUnverifiedHttps);
         Assert.Null(tolerant.ActivePlaylist);
     }
 

@@ -21,6 +21,9 @@ public sealed record AppSettings
 
     public bool AutoplayNext { get; init; } = true;
 
+    /// <summary>Play HTTPS streams whose certificate can't be verified (some providers use self-signed ones). Off by default.</summary>
+    public bool AllowUnverifiedHttps { get; init; }
+
     /// <summary>0–100, whole numbers.</summary>
     public double Volume { get; init; } = VolumeLevel.Default;
 

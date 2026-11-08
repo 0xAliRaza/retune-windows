@@ -39,9 +39,12 @@ public sealed class SettingsTests : IAsyncLifetime
         Assert.Equal("Automatic (MPEG-TS)", Page.SelectedLiveFormat.Label);
         Page.SelectedLiveFormat = Page.LiveFormats.Single(o => o.Format == LiveFormat.Hls);
         Page.AutoplayNext = false;
+        Assert.False(Page.AllowUnverifiedHttps);
+        Page.AllowUnverifiedHttps = true;
 
         Assert.Equal(LiveFormat.Hls, _app.Settings.Saved.LiveFormat);
         Assert.False(_app.Settings.Saved.AutoplayNext);
+        Assert.True(_app.Settings.Saved.AllowUnverifiedHttps);
         Assert.Equal(LiveFormat.Hls, Page.SelectedLiveFormat.Format);
     }
 

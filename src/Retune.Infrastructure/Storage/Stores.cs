@@ -175,6 +175,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             }
             writer.WriteString("player.liveFormat", settings.LiveFormat.ToString());
             writer.WriteBoolean("player.autoplayNext", settings.AutoplayNext);
+            writer.WriteBoolean("player.allowUnverifiedHttps", settings.AllowUnverifiedHttps);
             writer.WriteNumber("player.volume", VolumeLevel.Clamped(settings.Volume));
             writer.WritePropertyName("player.subtitleStyle");
             JsonSerializer.Serialize(writer, settings.SubtitleStyle.Clamped(), RetuneJson.TypeInfo<SubtitleStyle>());
@@ -205,6 +206,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             AutoplayNext = root.TryGetProperty("player.autoplayNext", out var a) && a.ValueKind is JsonValueKind.True or JsonValueKind.False ? a.GetBoolean() : d.AutoplayNext,
             Volume = root.TryGetProperty("player.volume", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var vol) ? VolumeLevel.Clamped(vol) : d.Volume,
             SubtitleStyle = SubtitleOr(root, d.SubtitleStyle),
+            AllowUnverifiedHttps = root.TryGetProperty("player.allowUnverifiedHttps", out var tls) && tls.ValueKind == JsonValueKind.True,
             SidebarCollapsed = root.TryGetProperty("ui.sidebarCollapsed", out var sc) && sc.ValueKind == JsonValueKind.True,
             Window = WindowOr(root),
             Zoom = root.TryGetProperty("ui.zoom", out var z) && z.ValueKind == JsonValueKind.Number && z.TryGetDouble(out var zoom) ? ZoomLevel.Clamped(zoom) : d.Zoom,

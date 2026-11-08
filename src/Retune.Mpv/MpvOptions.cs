@@ -15,12 +15,16 @@ public static class MpvOptions
         new("ytdl", "no"),
         new("load-unsafe-playlists", "no"),
         new("config", "no"),
+
+        // HTTPS streams carry the login in their address: never send it to a server whose certificate isn't trusted.
+        new("tls-verify", "yes"),
     ];
 
     /// <summary>Builds the full option list for a player that renders into <paramref name="windowHandle"/>.</summary>
     /// <param name="windowHandle">Child window mpv renders into, or null for audio/headless use (tests).</param>
     /// <param name="silent">No audio device at all (unattended dev runs): nothing can ever be heard.</param>
-    public static IReadOnlyList<KeyValuePair<string, string>> ForEmbeddedPlayer(nint? windowHandle, int volume, string userAgent, bool silent = false)
+    /// <param name="trustedCertificates">A PEM bundle of trusted roots (libmpv's TLS library ships without any).</param>
+    public static IReadOnlyList<KeyValuePair<string, string>> ForEmbeddedPlayer(nint? windowHandle, int volume, string userAgent, bool silent = false, string? trustedCertificates = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(volume, 0);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(volume, 100);
@@ -61,6 +65,11 @@ public static class MpvOptions
         if (silent)
         {
             options.Add(new("ao", "null"));
+        }
+
+        if (trustedCertificates is not null)
+        {
+            options.Add(new("tls-ca-file", trustedCertificates));
         }
 
         if (windowHandle is { } hwnd)

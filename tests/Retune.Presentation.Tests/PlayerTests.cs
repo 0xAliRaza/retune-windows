@@ -144,6 +144,18 @@ public sealed class PlayerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Certificates_are_verified_unless_the_user_allows_unverified_streams()
+    {
+        Assert.True(_engine.VerifiesCertificates);
+
+        _app.SettingsService.Update(s => s with { AllowUnverifiedHttps = true });
+        Assert.False(_engine.VerifiesCertificates);
+
+        _app.SettingsService.Update(s => s with { AllowUnverifiedHttps = false });
+        Assert.True(_engine.VerifiesCertificates);
+    }
+
+    [Fact]
     public void The_wheel_zaps_live_channels_and_shift_wheel_is_volume()
     {
         _player.Play(Channels());
@@ -409,6 +421,10 @@ public sealed class PlayerTests : IAsyncLifetime
         public void SeekAbsolute(double seconds)
         {
         }
+
+        public bool VerifiesCertificates { get; private set; } = true;
+
+        public void SetVerifyCertificates(bool verify) => VerifiesCertificates = verify;
 
         public bool CanSeekAhead { get; set; } = true;
 

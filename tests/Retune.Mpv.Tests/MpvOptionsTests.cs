@@ -19,6 +19,16 @@ public sealed class MpvOptionsTests
         Assert.DoesNotContain(MpvOptions.ForEmbeddedPlayer(null, 100, "UA"), o => o.Key == "ao");
     }
 
+    [Fact]
+    public void Certificates_are_verified_against_the_given_bundle()
+    {
+        var options = MpvOptions.ForEmbeddedPlayer(null, 100, "UA", trustedCertificates: @"C:\data\roots.pem");
+
+        Assert.Contains(new KeyValuePair<string, string>("tls-verify", "yes"), options);
+        Assert.Contains(new KeyValuePair<string, string>("tls-ca-file", @"C:\data\roots.pem"), options);
+        Assert.DoesNotContain(MpvOptions.ForEmbeddedPlayer(null, 100, "UA"), o => o.Key == "tls-ca-file");
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(101)]

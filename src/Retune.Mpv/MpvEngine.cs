@@ -14,6 +14,22 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
     private bool _pausedForCache;
     private bool _seeking;
     private static readonly TimeSpan ScreenshotShutdownWait = TimeSpan.FromSeconds(5);
+
+    private static readonly string[] CertificateFailureMarkers =
+    [
+        "certificate verification failed",
+        "certificate verify failed",
+        "SSL peer certificate",
+        "unable to get local issuer certificate",
+        "self signed certificate",
+        "self-signed certificate",
+        "certificate has expired",
+        "SEC_E_UNTRUSTED_ROOT",
+        "SEC_E_CERT_EXPIRED",
+        "CERT_E_UNTRUSTEDROOT",
+    ];
+
+    private volatile bool _certificateRejected;
     private IReadOnlyList<MediaTrack> _tracks = [];
     private Task<bool>? _screenshot;
 
@@ -91,6 +107,8 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
         _mpv.GetFlag("seekable") != false
         || seconds <= (_mpv.GetDouble("time-pos") ?? 0)
         || seconds <= (_mpv.GetDouble("demuxer-cache-time") ?? 0);
+
+    public void SetVerifyCertificates(bool verify) => _mpv.SetProperty("tls-verify", verify);
 
     public void SetVolume(double volume) => _mpv.SetProperty("volume", VolumeLevel.Clamped(volume));
 
@@ -195,14 +213,19 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
         switch (e)
         {
             case MpvFileStarted:
+                _certificateRejected = false;
                 return [new EngineBuffering(true)];
             case MpvFileLoaded:
                 _tracks = ReadTracks();
                 return [new EngineFileLoaded(), new EngineTracksChanged()];
             case MpvPlaybackRestarted:
                 return [new EngineFirstFrame(), new EngineBuffering(IsBuffering())];
+            case MpvLogMessage log when IsCertificateFailure(log.Text):
+                // mpv only reports "loading failed"; its log says why, so remember it for the end-file that follows.
+                _certificateRejected = true;
+                return null;
             case MpvEndFile { Reason: MpvEndFileReason.Error } end:
-                return [new EngineFailed(end.ErrorMessage ?? "unknown error")];
+                return _certificateRejected ? [new EngineCertificateRejected()] : [new EngineFailed(end.ErrorMessage ?? "unknown error")];
             case MpvPropertyChanged p:
                 return TranslateProperty(p);
             default:
@@ -248,6 +271,10 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
     }
 
     private bool IsBuffering() => _pausedForCache || _seeking;
+
+    /// <summary>The wording of curl's, OpenSSL's and Schannel's certificate errors as mpv logs them.</summary>
+    private static bool IsCertificateFailure(string text) =>
+        CertificateFailureMarkers.Any(marker => text.Contains(marker, StringComparison.OrdinalIgnoreCase));
 
     private List<MediaTrack> ReadTracks()
     {

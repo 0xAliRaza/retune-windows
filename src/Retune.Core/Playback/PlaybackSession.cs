@@ -16,6 +16,9 @@ public sealed class PlaybackSession : IDisposable
     public const int AutoplayCountdownSeconds = 8;
 
     public const string UnsupportedAddressMessage = "This stream uses an address type Retune doesn't play.";
+
+    public const string CertificateRejectedMessage =
+        "This provider's secure connection couldn't be verified, so Retune didn't connect or send your login. If you trust this provider, allow unverified HTTPS streams in Settings › Playback.";
     public const string LiveStoppedMessage = "The live stream stopped.";
     public const string ConnectionDroppedMessage = "The connection dropped.";
 
@@ -302,6 +305,9 @@ public sealed class PlaybackSession : IDisposable
             case EngineFailed f when State.Phase is PlaybackPhase.Tuning or PlaybackPhase.Playing:
                 HandleFailure($"This stream couldn't be played ({f.Message}). The channel may be offline or your connection limit reached.");
                 break;
+            case EngineCertificateRejected when State.Phase is PlaybackPhase.Tuning or PlaybackPhase.Playing or PlaybackPhase.Reconnecting:
+                FailWithoutRetry(CertificateRejectedMessage);
+                break;
             case EngineReachedEnd when State.Phase is PlaybackPhase.Playing or PlaybackPhase.Tuning:
                 HandleEnd();
                 break;
@@ -339,6 +345,16 @@ public sealed class PlaybackSession : IDisposable
         {
             StartAutoplayCountdown();
         }
+    }
+
+    /// <summary>Retrying can't help (a certificate won't verify on the next attempt either): fail now.</summary>
+    private void FailWithoutRetry(string message)
+    {
+        ReportProgress(isFinal: true);
+        _loadIssued = false;
+        _engine.StopPlayback();
+        CancelTimers();
+        Update(State with { Phase = PlaybackPhase.Failed, ErrorMessage = message, Buffering = false });
     }
 
     private void HandleFailure(string message)

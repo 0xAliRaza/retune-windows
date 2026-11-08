@@ -136,6 +136,20 @@ public sealed class PlaybackSessionTests : IDisposable
     }
 
     [Fact]
+    public void A_rejected_certificate_fails_at_once_without_reconnecting()
+    {
+        _session.Start(Channels());
+        var loads = _engine.Loads.Count;
+
+        _engine.Raise(new EngineCertificateRejected());
+        _time.Advance(TimeSpan.FromSeconds(30));
+
+        Assert.Equal(PlaybackPhase.Failed, _session.State.Phase);
+        Assert.Equal(PlaybackSession.CertificateRejectedMessage, _session.State.ErrorMessage);
+        Assert.Equal(loads, _engine.Loads.Count);
+    }
+
+    [Fact]
     public void A_frame_resets_the_reconnect_counter_and_try_again_starts_fresh()
     {
         _session.Start(Channels());

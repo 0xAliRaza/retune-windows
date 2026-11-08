@@ -122,6 +122,9 @@ public interface IPlayerEngine : IMediaEngine
     /// </summary>
     bool CanSeekTo(double seconds);
 
+    /// <summary>Whether HTTPS streams must present a certificate Windows trusts (on unless the user allows otherwise).</summary>
+    void SetVerifyCertificates(bool verify);
+
     void SelectAudio(long id);
 
     /// <param name="id">Null turns subtitles off.</param>

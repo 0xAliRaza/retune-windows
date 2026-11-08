@@ -32,6 +32,9 @@ public sealed record EngineFirstFrame : EngineEvent;
 /// <summary>The file failed to play (mpv END_FILE with an error).</summary>
 public sealed record EngineFailed(string Message) : EngineEvent;
 
+/// <summary>An HTTPS stream's certificate couldn't be verified: the connection was refused before the login was sent.</summary>
+public sealed record EngineCertificateRejected : EngineEvent;
+
 /// <summary>The end was reached (mpv eof-reached became true; the last frame stays up).</summary>
 public sealed record EngineReachedEnd : EngineEvent;
 

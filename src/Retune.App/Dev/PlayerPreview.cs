@@ -127,6 +127,10 @@ internal static class PlayerPreview
         {
         }
 
+        public bool VerifiesCertificates { get; private set; } = true;
+
+        public void SetVerifyCertificates(bool verify) => VerifiesCertificates = verify;
+
         public bool CanSeekAhead { get; set; } = true;
 
         public bool CanSeekTo(double seconds) => CanSeekAhead;
