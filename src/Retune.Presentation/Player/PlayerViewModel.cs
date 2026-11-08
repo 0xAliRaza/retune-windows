@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Retune.Core.Diagnostics;
 using Retune.Core.Errors;
 using Retune.Core.Formatting;
 using Retune.Core.Models;
@@ -41,6 +42,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     private readonly IKeepAwake _keepAwake;
     private readonly TimeProvider _time;
     private readonly Action<Action> _post;
+    private readonly IAppLog _log;
     private readonly ITimer _statsTimer;
     private ITimer? _hideTimer;
     private ITimer? _flashTimer;
@@ -52,7 +54,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     private long? _lastSubtitle;
     private PlaybackItem? _shownItem;
 
-    public PlayerViewModel(IPlayerEngine engine, PlaybackSession session, PlaylistController playlists, SettingsService settings, IKeepAwake keepAwake, TimeProvider time, Action<Action> post)
+    public PlayerViewModel(IPlayerEngine engine, PlaybackSession session, PlaylistController playlists, SettingsService settings, IKeepAwake keepAwake, TimeProvider time, Action<Action> post, IAppLog log)
     {
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _session = session ?? throw new ArgumentNullException(nameof(session));
@@ -61,6 +63,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _keepAwake = keepAwake;
         _time = time;
         _post = post;
+        _log = log ?? throw new ArgumentNullException(nameof(log));
 
         var stored = settings.Current;
         SubtitleStyle = stored.SubtitleStyle.Clamped();
@@ -272,13 +275,11 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     [RelayCommand]
     public void Seek(double seconds)
     {
-        if (!State.IsSeekable)
+        if (CanSeek(State.Position + seconds))
         {
-            return;
+            _engine.SeekRelative(seconds);
+            Flash(seconds < 0 ? $"−{-seconds:0}s" : $"+{seconds:0}s");
         }
-
-        _engine.SeekRelative(seconds);
-        Flash(seconds < 0 ? $"−{-seconds:0}s" : $"+{seconds:0}s");
     }
 
     [RelayCommand]
@@ -290,13 +291,39 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     /// <summary>The scrubber: absolute position, released.</summary>
     public void SeekTo(double seconds)
     {
-        if (State.IsSeekable)
+        var target = Math.Clamp(seconds, 0, Math.Max(0, State.Duration));
+        if (CanSeek(target))
         {
-            _engine.SeekAbsolute(Math.Clamp(seconds, 0, State.Duration));
+            _engine.SeekAbsolute(target);
         }
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// Says why a seek can't happen instead of silently ignoring it: live TV, a video of unknown length, or a server
+    /// that only streams from the start (forward jumps then only work within what has downloaded).
+    /// </summary>
+    private bool CanSeek(double target)
+    {
+        if (State.IsLive)
+        {
+            return false;
+        }
+
+        if (!State.IsSeekable)
+        {
+            Flash("This video can't be skipped (its length is unknown)");
+            return false;
+        }
+
+        if (target > State.Position && !_engine.CanSeekTo(target))
+        {
+            Flash("This server doesn't allow skipping ahead that far yet");
+            _log.Warning("player", "A forward seek was refused: the server doesn't accept range requests and the target isn't downloaded yet.");
+            return false;
+        }
+
+        return true;
+    }    [RelayCommand]
     public void Next() => _session.Step(+1);
 
     [RelayCommand]

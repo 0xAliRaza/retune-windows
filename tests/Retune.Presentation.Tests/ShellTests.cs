@@ -301,7 +301,6 @@ public sealed class ShellTests
 
         Assert.Equal(CategoryFilter.All, app.Shell.Filter);
         Assert.DoesNotContain(app.Shell.Categories.Categories, c => c.CategoryId == news.CategoryId);
-        Assert.Equal(1, app.Shell.Categories.HiddenCount);
     }
 
     [Fact]

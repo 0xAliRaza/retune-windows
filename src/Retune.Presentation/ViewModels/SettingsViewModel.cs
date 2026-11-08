@@ -41,12 +41,21 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         RebuildHidden();
     }
 
-    public static IReadOnlyList<LiveFormatOption> LiveFormats { get; } =
+    /// <summary>The choices, with what Automatic picks for the active playlist in brackets.</summary>
+    public IReadOnlyList<LiveFormatOption> LiveFormats =>
     [
-        new(Core.Models.LiveFormat.Automatic, "Automatic"),
+        new(Core.Models.LiveFormat.Automatic, $"Automatic ({AutomaticChoice})"),
         new(Core.Models.LiveFormat.Ts, "MPEG-TS (lower latency)"),
         new(Core.Models.LiveFormat.Hls, "HLS (more resilient)"),
     ];
+
+    /// <summary>
+    /// What Automatic resolves to: for Xtream, MPEG-TS unless the account doesn't allow it; M3U playlists always use
+    /// their own links.
+    /// </summary>
+    public string AutomaticChoice => _playlists.Active?.Source is XtreamSource
+        ? Core.Xtream.LiveFormats.Extension(Core.Models.LiveFormat.Automatic, _playlists.Account?.Formats ?? []) == "ts" ? "MPEG-TS" : "HLS"
+        : "the playlist's own links";
 
     public LiveFormatOption SelectedLiveFormat
     {
@@ -87,6 +96,14 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     public partial IReadOnlyList<HiddenCategoryRow> HiddenCategories { get; private set; } = [];
 
     public bool HasHiddenCategories => HiddenCategories.Count > 0;
+
+    /// <summary>The collapsed section's subtitle: how many, never which.</summary>
+    public string HiddenSummary => HiddenCategories.Count switch
+    {
+        0 => "None",
+        1 => "1 hidden — expand to show it again",
+        var n => $"{n.ToString(System.Globalization.CultureInfo.CurrentCulture)} hidden — expand to show them again",
+    };
 
     /// <summary>The cache button turns into a disabled "Cleared" for the rest of the page's life.</summary>
     [ObservableProperty]
@@ -174,6 +191,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
     private void OnPlaylistsChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(PlaylistController.Account) or nameof(PlaylistController.Active))
+        {
+            OnPropertyChanged(nameof(LiveFormats));
+            OnPropertyChanged(nameof(SelectedLiveFormat));
+        }
+
         if (e.PropertyName is nameof(PlaylistController.Active) or nameof(PlaylistController.Index))
         {
             OnPropertyChanged(nameof(HasActivePlaylist));
@@ -205,5 +228,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
 
         HiddenCategories = rows;
         OnPropertyChanged(nameof(HasHiddenCategories));
+        OnPropertyChanged(nameof(HiddenSummary));
     }
 }

@@ -1,7 +1,7 @@
 using System.Globalization;
 using Retune.FakeProvider;
 
-// dotnet run --project tools/FakeProvider -- [--port 8080] [--movies 65000] [--channels 16000] [--series 7000] [--media <folder>]
+// dotnet run --project tools/FakeProvider -- [--port 8080] [--movies 65000] [--channels 16000] [--series 7000] [--media <folder>] [--no-range]
 string? Arg(string name)
 {
     var i = Array.IndexOf(args, name);
@@ -18,6 +18,7 @@ var options = defaults with
     Movies = Number("--movies", defaults.Movies),
     Series = Number("--series", defaults.Series),
     MediaFolder = Directory.Exists(media) ? media : null,
+    RangeRequests = !args.Contains("--no-range"),
 };
 
 await using var server = await FakeProviderServer.StartAsync(options, Number("--port", 8080));

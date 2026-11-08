@@ -9,6 +9,8 @@ public sealed class LogRedactionTests
     [InlineData("rtmp://a.b/c and https://x.y/z?q=1", "<url> and <url>")]
     [InlineData("username=alice&password=s3cret", "username=<redacted>&password=<redacted>")]
     [InlineData("Token: abc123, pin=1234", "Token=<redacted>, pin=<redacted>")]
+    [InlineData("Cannot open '/movie/alice/s3cret/123.mkv'", "Cannot open '/movie/<redacted>/<redacted>/123.mkv'")]
+    [InlineData("GET /live/bob/pw/9.ts failed", "GET /live/<redacted>/<redacted>/9.ts failed")]
     [InlineData("nothing to hide", "nothing to hide")]
     [InlineData("", "")]
     [InlineData(null, "")]

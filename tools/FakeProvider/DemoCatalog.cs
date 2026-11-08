@@ -3,13 +3,15 @@ using System.Globalization;
 namespace Retune.FakeProvider;
 
 /// <summary>Size and login of the fake account. Defaults suit demos and screenshots; tests scale it up to 88k items.</summary>
+/// <param name="RangeRequests">False imitates the many IPTV servers that ignore HTTP Range requests (no seeking).</param>
 public sealed record FakeProviderOptions(
     int Channels = 120,
     int Movies = 400,
     int Series = 80,
     string Username = "demo",
     string Password = "demo",
-    string? MediaFolder = null);
+    string? MediaFolder = null,
+    bool RangeRequests = true);
 
 /// <summary>
 /// Deterministic, entirely made-up catalog content (no real channels, titles or brands), generated from word

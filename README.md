@@ -25,7 +25,11 @@ playback by [mpv](https://mpv.io). Free and open source (GPL-3.0-or-later). No a
   playing, Mica, dark Fluent design, screen-reader names on every control.
 - **Parental PIN**: lock categories; locked content never leaks into All, search, favorites or history.
   Wrong PINs pause entry (30 s, then 1 min, then 5 min).
-- **Keyboard first**: every action has a shortcut. Press **F1**, **Ctrl+/** or **?** for the full list.
+- **Keyboard first, mouse friendly**: every action has a shortcut (press **F1**, **Ctrl+/** or **?** for the full list),
+  and the player answers the mouse too: the wheel zaps channels on live TV and sets the volume on films, middle-click
+  mutes, right-click opens a player menu, and the mouse's Back button leaves the player.
+- **Your layout, remembered**: app-wide zoom (75–200%), a sidebar that collapses to an icon rail, and the window's
+  size, position and maximised state all come back the next time you open Retune.
 
 | | |
 | --- | --- |
@@ -84,13 +88,14 @@ winget install JRSoftware.InnoSetup --scope user   # once; per-user, no admin ri
 
 | Where | Keys |
 | --- | --- |
-| Anywhere | **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **F11** full screen · **F1** shortcuts |
+| Anywhere | **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
 | Browsing | **Tab** next column · **Enter** open or play · **Alt+←**, **Backspace** or the mouse's Back button go back · **Ctrl+Shift+1/2/3** grid / list / compact |
 | Player | **Space** play/pause · **←/→** 10 s (**Shift** 1 min) · **↑/↓** previous/next · **0–9** channel number · **Backspace** last channel · **L** channel list · **M** mute · **−/+** volume · **C** subtitles · **[ ] \\** speed · **I** stats · **S** screenshot · **F** full screen · **Esc** close |
+| Player, mouse | **Click** play/pause · **Double-click** full screen · **Wheel** channels (live) or volume (films) · **Shift + wheel** volume · **Middle-click** mute · **Right-click** player menu · **Back button** leave the player |
 
-Settings (the gear at the bottom of the sidebar) cover the live stream format (Automatic, MPEG-TS or HLS),
-autoplay of the next episode, the parental PIN, hidden categories, clearing watch history and clearing the
-artwork cache.
+Settings (the gear at the bottom of the sidebar) cover zoom, the live stream format (Automatic shows what it picks for
+your playlist, or choose MPEG-TS or HLS), autoplay of the next episode, the parental PIN, hidden categories (collapsed,
+so their names stay out of sight until you open the section), clearing watch history and clearing the artwork cache.
 
 ## Your data
 
@@ -108,6 +113,39 @@ stream URLs are checked against an allowlist of schemes.
 remove the folders above and the passwords Retune saved; choose **No** to keep them for a later reinstall. With the
 portable zip, delete the folder; `Retune.exe --purge-data` removes your data and saved passwords.
 
+## Compared with the macOS app
+
+Retune for Windows is a fresh build of the [macOS app](https://github.com/0xAliRaza/retune), not a port: the same
+features and feel, adapted to Windows. These are the places where it now differs, kept here so they can be brought back
+to the macOS version.
+
+**New on Windows**
+
+- Numeric channel entry: type a channel number in the player (shown on screen, tunes after 1.5 s or Enter).
+- System media controls: media keys and the Windows media flyout (title and now-playing guide line).
+- Mouse controls in the player: wheel zaps channels on live TV and sets the volume on films (Shift + wheel is always
+  volume), middle-click mutes, right-click player menu (tracks, speed, list, stats, screenshot, shortcuts), mouse Back
+  button leaves the player.
+- App-wide zoom (Ctrl+Plus/Minus/0, Ctrl + wheel, Settings › Appearance).
+- Collapsible sidebar (Ctrl+B) to an icon rail.
+- Window size, position and maximised state are remembered.
+- Parental PIN lockout after 5 wrong tries (30 s, then 1 min, then 5 min); the unlock prompt says which.
+- Delete-playlist confirmation.
+- Keyboard Shortcuts sheet on F1, Ctrl+/ and ? everywhere (macOS: ? in the player only), with a mouse section.
+- Settings as a page in the main window; the live format shows what Automatic picked; hidden categories are a
+  collapsed section; "N hidden" no longer appears under the category list.
+- Seeking explains itself: a refused forward jump (servers without range support, unknown length) shows why instead
+  of doing nothing.
+- Screenshots at source resolution, saved to `Pictures\Retune`.
+- Single instance: a second launch brings the first window forward.
+- Data at rest: playlists and catalogs encrypted with DPAPI, data folder restricted to the user, uninstaller offers to
+  remove data and saved passwords, redacted diagnostic log.
+
+**Deliberately different**
+
+- Ctrl+1–3 don't change the section while the player is open (macOS changes it underneath).
+- Layout shortcuts are Ctrl+Shift+1–3; Back is Alt+←, Backspace or the mouse's Back button.
+- The favourite icon is a star everywhere (macOS mixes heart and star).
 ## How it's built
 
 C# on .NET 10 with WPF and [WPF-UI](https://github.com/lepoco/wpfui) (Fluent design, Mica), CommunityToolkit.Mvvm,
@@ -132,7 +170,7 @@ window.
 
 ## Quality
 
-- **495 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
+- **535 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
   HTTP limits and timeouts against a local server, view models against an in-process fake provider, and real mpv
   playback of generated media. CI runs them on every push.
 - **Zero analyzer warnings**: `latest-recommended` analysis with warnings as errors.

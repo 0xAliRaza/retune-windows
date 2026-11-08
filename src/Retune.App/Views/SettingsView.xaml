@@ -51,7 +51,7 @@
             <TextBlock Style="{StaticResource Hint}" Text="Try HLS if a channel keeps freezing; MPEG-TS starts faster." />
           </StackPanel>
         </ui:CardControl.Header>
-        <ComboBox MinWidth="220" ItemsSource="{x:Static vm:SettingsViewModel.LiveFormats}" SelectedItem="{Binding SelectedLiveFormat}" DisplayMemberPath="Label" AutomationProperties.Name="Live stream format" />
+        <ComboBox MinWidth="220" ItemsSource="{Binding LiveFormats}" SelectedItem="{Binding SelectedLiveFormat}" DisplayMemberPath="Label" AutomationProperties.Name="Live stream format" />
       </ui:CardControl>
       <ui:CardControl Style="{StaticResource Card}" Icon="{ui:SymbolIcon Next24}">
         <ui:CardControl.Header>
@@ -86,7 +86,14 @@
 
       <!-- ===================================================== Hidden categories -->
       <TextBlock Style="{StaticResource SectionHeader}" Text="Hidden categories" />
-      <Border Padding="16,12" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6">
+      <!-- Collapsed by default: the names of hidden categories stay out of sight until asked for. -->
+      <ui:CardExpander IsExpanded="False" Icon="{ui:SymbolIcon EyeOff24}" AutomationProperties.Name="Hidden categories">
+        <ui:CardExpander.Header>
+          <StackPanel>
+            <TextBlock FontSize="14" Text="Hidden categories" />
+            <TextBlock Style="{StaticResource Hint}" Text="{Binding HiddenSummary}" />
+          </StackPanel>
+        </ui:CardExpander.Header>
         <StackPanel>
           <TextBlock Style="{StaticResource Hint}" FontSize="13" Text="Right-click a category and choose Hide to tidy up the list." Visibility="{Binding HasHiddenCategories, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
           <ItemsControl Focusable="False" ItemsSource="{Binding HiddenCategories}">
@@ -105,7 +112,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </StackPanel>
-      </Border>
+      </ui:CardExpander>
 
       <!-- ===================================================== History and storage -->
       <TextBlock Style="{StaticResource SectionHeader}" Text="History and storage" />

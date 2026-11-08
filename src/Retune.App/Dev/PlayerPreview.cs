@@ -22,7 +22,7 @@ internal static class PlayerPreview
     {
         var engine = new StubEngine();
         using var session = new PlaybackSession(engine, new LibraryPlaybackObserver(app.Library, app.Playlists), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a));
-        using var player = new PlayerViewModel(engine, session, app.Playlists, app.Settings, new StubAwake(), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a));
+        using var player = new PlayerViewModel(engine, session, app.Playlists, app.Settings, new StubAwake(), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a), app.Log);
         var chrome = new PlayerView { DataContext = player };
         var root = new Grid { Background = FakeVideo() };
         root.Children.Add(chrome);
@@ -126,6 +126,10 @@ internal static class PlayerPreview
         public void SeekAbsolute(double seconds)
         {
         }
+
+        public bool CanSeekAhead { get; set; } = true;
+
+        public bool CanSeekTo(double seconds) => CanSeekAhead;
 
         public void SeekRelative(double seconds)
         {

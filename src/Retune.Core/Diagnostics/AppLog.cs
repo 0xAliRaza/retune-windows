@@ -33,7 +33,7 @@ public static partial class LogRedaction
     public const string Url = "<url>";
     public const string Secret = "<redacted>";
 
-    /// <summary>Replaces URLs (any scheme) and credential-looking key=value pairs.</summary>
+    /// <summary>Replaces URLs (any scheme), Xtream stream paths (which carry the login) and credential-looking key=value pairs.</summary>
     public static string Redact(string? text)
     {
         if (string.IsNullOrEmpty(text))
@@ -41,7 +41,7 @@ public static partial class LogRedaction
             return string.Empty;
         }
 
-        var withoutUrls = UrlPattern().Replace(text, Url);
+        var withoutUrls = XtreamPathPattern().Replace(UrlPattern().Replace(text, Url), m => $"/{m.Groups["kind"].Value}/{Secret}/{Secret}/");
         return SecretPattern().Replace(withoutUrls, m => $"{m.Groups["key"].Value}={Secret}");
     }
 
@@ -64,6 +64,10 @@ public static partial class LogRedaction
 
     [GeneratedRegex(@"\b[a-z][a-z0-9+.\-]*://[^\s""'<>]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UrlPattern();
+
+    /// <summary>"/movie/&lt;user&gt;/&lt;password&gt;/…" as mpv sometimes prints it without the scheme and host.</summary>
+    [GeneratedRegex(@"/(?<kind>live|movie|series|timeshift)/[^/\s]+/[^/\s]+/", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex XtreamPathPattern();
 
     [GeneratedRegex(@"(?<key>\b(?:username|user|password|pass|pwd|token|auth|pin)\b)\s*[=:]\s*[^\s&;,]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SecretPattern();

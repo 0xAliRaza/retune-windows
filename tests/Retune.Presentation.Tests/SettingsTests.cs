@@ -36,7 +36,8 @@ public sealed class SettingsTests : IAsyncLifetime
     [Fact]
     public void Playback_options_are_saved()
     {
-        Page.SelectedLiveFormat = SettingsViewModel.LiveFormats.Single(o => o.Format == LiveFormat.Hls);
+        Assert.Equal("Automatic (MPEG-TS)", Page.SelectedLiveFormat.Label);
+        Page.SelectedLiveFormat = Page.LiveFormats.Single(o => o.Format == LiveFormat.Hls);
         Page.AutoplayNext = false;
 
         Assert.Equal(LiveFormat.Hls, _app.Settings.Saved.LiveFormat);
@@ -54,11 +55,13 @@ public sealed class SettingsTests : IAsyncLifetime
         _app.Library.Update(s => s.ToggleHidden(known).ToggleHidden(unknown).ToggleHidden(otherPlaylist));
 
         Assert.Equal(["Category gone", movies[0].Name.Trim()], Page.HiddenCategories.Select(r => r.Name));
+        Assert.Equal("2 hidden — expand to show them again", Page.HiddenSummary);
 
         Page.ShowCategory(Page.HiddenCategories[1]);
 
         Assert.DoesNotContain(known, _app.Library.State.HiddenCategories);
         Assert.Single(Page.HiddenCategories);
+        Assert.Equal("1 hidden — expand to show it again", Page.HiddenSummary);
     }
 
     [Fact]

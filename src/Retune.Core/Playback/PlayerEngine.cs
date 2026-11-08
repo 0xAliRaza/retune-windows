@@ -116,6 +116,12 @@ public interface IPlayerEngine : IMediaEngine
 
     void SeekRelative(double seconds);
 
+    /// <summary>
+    /// Whether a seek to <paramref name="seconds"/> can work: always on servers that allow jumping (HTTP ranges);
+    /// otherwise only within what has already been downloaded.
+    /// </summary>
+    bool CanSeekTo(double seconds);
+
     void SelectAudio(long id);
 
     /// <param name="id">Null turns subtitles off.</param>

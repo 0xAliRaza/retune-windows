@@ -21,7 +21,7 @@ public sealed class PlayerTests : IAsyncLifetime
         _playlist = await _app.AddDemoAsync();
         _engine = new FakeEngine();
         _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(_app.Library, _app.Controller), _app.Time, a => a());
-        _player = new PlayerViewModel(_engine, _session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a());
+        _player = new PlayerViewModel(_engine, _session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
     }
 
     public async ValueTask DisposeAsync()
@@ -174,6 +174,32 @@ public sealed class PlayerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_refused_forward_seek_says_why_and_is_logged_while_going_back_still_works()
+    {
+        _player.Play(Movie());
+        FirstFrame(duration: 600, position: 100);
+        _engine.CanSeekAhead = false;
+
+        _player.SeekForward();
+        Assert.Equal("This server doesn't allow skipping ahead that far yet", _player.FlashText);
+        Assert.Contains(_app.Log.Entries, e => e.Area == "player");
+
+        _player.SeekBack();
+        Assert.Equal("−10s", _player.FlashText);
+    }
+
+    [Fact]
+    public void A_video_of_unknown_length_says_it_cannot_be_skipped()
+    {
+        _player.Play(Movie());
+        FirstFrame(duration: 0, position: 30);
+
+        _player.SeekForward();
+
+        Assert.Equal("This video can't be skipped (its length is unknown)", _player.FlashText);
+    }
+
+    [Fact]
     public void Opening_the_player_never_unmutes()
     {
         var engine = new FakeEngine();
@@ -181,7 +207,7 @@ public sealed class PlayerTests : IAsyncLifetime
         _app.Settings.Save(AppSettings.Default with { Volume = 80 });
 
         using var session = new PlaybackSession(engine, new LibraryPlaybackObserver(_app.Library, _app.Controller), _app.Time, a => a());
-        using var player = new PlayerViewModel(engine, session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a());
+        using var player = new PlayerViewModel(engine, session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
 
         Assert.True(engine.Muted);
     }
@@ -381,6 +407,10 @@ public sealed class PlayerTests : IAsyncLifetime
         public void SeekAbsolute(double seconds)
         {
         }
+
+        public bool CanSeekAhead { get; set; } = true;
+
+        public bool CanSeekTo(double seconds) => CanSeekAhead;
 
         public void SeekRelative(double seconds)
         {

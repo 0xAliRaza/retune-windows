@@ -32,6 +32,9 @@ public sealed record AppSettings
     /// <summary>The sidebar shows as a slim icon rail (Ctrl+B).</summary>
     public bool SidebarCollapsed { get; init; }
 
+    /// <summary>Where the main window was when Retune last closed (null until then).</summary>
+    public WindowPlacement? Window { get; init; }
+
     public LayoutMode LayoutFor(LibrarySection section) => section switch
     {
         LibrarySection.Live => LiveLayout,

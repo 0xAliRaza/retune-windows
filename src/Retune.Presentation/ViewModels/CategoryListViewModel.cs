@@ -58,9 +58,6 @@ public sealed partial class CategoryListViewModel : ObservableObject
     public partial string FilterText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial int HiddenCount { get; private set; }
-
-    [ObservableProperty]
     public partial string SectionTitle { get; private set; } = string.Empty;
 
     public void Show(BrowseContext? context, LibrarySection section, CategoryFilter selected)
@@ -84,7 +81,6 @@ public sealed partial class CategoryListViewModel : ObservableObject
         if (_context is not { } context)
         {
             Fixed = Pinned = Categories = [];
-            HiddenCount = 0;
             return;
         }
 
@@ -118,7 +114,6 @@ public sealed partial class CategoryListViewModel : ObservableObject
         var (pinned, others) = BrowseModel.BrowsableCategories(context, _section);
         Pinned = pinned.Where(Visible).Select(c => Row(c, true)).ToList();
         Categories = others.Where(Visible).Select(c => Row(c, false)).ToList();
-        HiddenCount = BrowseModel.HiddenCategories(context).Count(h => h.Section == _section);
     }
 
     private CategoryRow Mark(CategoryRow row) => row.Filter == _selected ? row with { IsSelected = true } : row;

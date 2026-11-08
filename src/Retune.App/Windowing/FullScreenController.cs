@@ -18,6 +18,9 @@ public sealed class FullScreenController(Window window)
 
     public bool IsFullScreen { get; private set; }
 
+    /// <summary>While in full screen: the window's bounds and state before it entered.</summary>
+    public (Rect Bounds, WindowState State) Before => (_restoreBounds, _restoreState);
+
     /// <summary>Raised after entering or leaving full screen.</summary>
     public event EventHandler? Changed;
 

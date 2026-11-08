@@ -85,6 +85,11 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
     public void SeekRelative(double seconds) =>
         _mpv.CommandAsync("seek", seconds.ToString("0.###", CultureInfo.InvariantCulture), "relative+exact");
 
+    public bool CanSeekTo(double seconds) =>
+        _mpv.GetFlag("seekable") != false
+        || seconds <= (_mpv.GetDouble("time-pos") ?? 0)
+        || seconds <= (_mpv.GetDouble("demuxer-cache-time") ?? 0);
+
     public void SetVolume(double volume) => _mpv.SetProperty("volume", VolumeLevel.Clamped(volume));
 
     public void SetMuted(bool muted) => _mpv.SetProperty("mute", muted);

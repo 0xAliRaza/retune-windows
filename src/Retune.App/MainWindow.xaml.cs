@@ -39,6 +39,7 @@ public partial class MainWindow : FluentWindow
         PlayerChrome.Host = Overlay;
         PlayerLayer.Visibility = Visibility.Visible; // so the video window is created at startup; hidden once it exists
         Video.VideoWindowCreated += OnVideoWindowCreated;
+        RestorePlacement(container.Settings.Current.Window);
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewMouseDown += OnMouseBack;
         Loaded += (_, _) => Controls.TitleBarAccessibility.NameCaptionButtons(AppTitleBar);
@@ -64,11 +65,42 @@ public partial class MainWindow : FluentWindow
 
     protected override void OnClosing(CancelEventArgs e)
     {
+        Container.Settings.Update(s => s with { Window = CurrentPlacement() });
+
         // mpv must be destroyed before its window; the final progress is saved first.
         _mediaControls?.Dispose();
         _mediaControls = null;
         Container.ShutdownPlayer();
         base.OnClosing(e);
+    }
+
+    /// <summary>Reopens where Retune was left, if that spot is still on a connected screen.</summary>
+    private void RestorePlacement(WindowPlacement? saved)
+    {
+        var screen = (SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        if (saved is null || !saved.IsValid(MinWidth, MinHeight) || !saved.IsOnScreen([screen]))
+        {
+            return;
+        }
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = saved.Left;
+        Top = saved.Top;
+        Width = saved.Width;
+        Height = saved.Height;
+        if (saved.Maximized)
+        {
+            WindowState = WindowState.Maximized;
+        }
+    }
+
+    /// <summary>The normal bounds and maximised state to reopen with (full screen counts as what it replaced).</summary>
+    private WindowPlacement CurrentPlacement()
+    {
+        var (bounds, state) = _fullScreen.IsFullScreen
+            ? _fullScreen.Before
+            : (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds, WindowState);
+        return new WindowPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height, state == WindowState.Maximized);
     }
 
     private void OnVideoWindowCreated(object? sender, EventArgs e)

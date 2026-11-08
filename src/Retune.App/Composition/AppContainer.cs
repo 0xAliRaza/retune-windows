@@ -99,10 +99,18 @@ public sealed class AppContainer : IDisposable
         ArgumentNullException.ThrowIfNull(dispatcher);
         void Post(Action action) => dispatcher.BeginInvoke(action);
         var volume = (int)Core.Playback.VolumeLevel.Clamped(Settings.Current.Volume);
-        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent), logLevel: null);
+        _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent), logLevel: "warn");
+        _mpv.EventReceived += (_, e) =>
+        {
+            // Runs on mpv's thread; the log is thread-safe and strips URLs and credentials.
+            if (e is MpvLogMessage message)
+            {
+                Log.Warning("mpv", $"{message.Prefix}: {message.Text.TrimEnd()}");
+            }
+        };
         _engine = new MpvEngine(_mpv, Post);
         _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(Library, Playlists), Time, Post);
-        PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Settings, new KeepAwake(), Time, Post);
+        PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Settings, new KeepAwake(), Time, Post, Log);
         Player.Attach(PlayerModel);
         if (Player.LastRequest is { } pending)
         {

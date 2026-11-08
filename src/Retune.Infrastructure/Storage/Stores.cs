@@ -163,6 +163,16 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             writer.WriteString("layout.tileSize", settings.TileSize.ToString());
             writer.WriteNumber("ui.zoom", ZoomLevel.Clamped(settings.Zoom));
             writer.WriteBoolean("ui.sidebarCollapsed", settings.SidebarCollapsed);
+            if (settings.Window is { } w)
+            {
+                writer.WriteStartObject("ui.window");
+                writer.WriteNumber("left", w.Left);
+                writer.WriteNumber("top", w.Top);
+                writer.WriteNumber("width", w.Width);
+                writer.WriteNumber("height", w.Height);
+                writer.WriteBoolean("maximized", w.Maximized);
+                writer.WriteEndObject();
+            }
             writer.WriteString("player.liveFormat", settings.LiveFormat.ToString());
             writer.WriteBoolean("player.autoplayNext", settings.AutoplayNext);
             writer.WriteNumber("player.volume", VolumeLevel.Clamped(settings.Volume));
@@ -196,6 +206,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             Volume = root.TryGetProperty("player.volume", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var vol) ? VolumeLevel.Clamped(vol) : d.Volume,
             SubtitleStyle = SubtitleOr(root, d.SubtitleStyle),
             SidebarCollapsed = root.TryGetProperty("ui.sidebarCollapsed", out var sc) && sc.ValueKind == JsonValueKind.True,
+            Window = WindowOr(root),
             Zoom = root.TryGetProperty("ui.zoom", out var z) && z.ValueKind == JsonValueKind.Number && z.TryGetDouble(out var zoom) ? ZoomLevel.Clamped(zoom) : d.Zoom,
         };
     }
@@ -208,6 +219,19 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
         Text(root, name) is { } text && Enum.TryParse<T>(text, ignoreCase: true, out var value) && Enum.IsDefined(value) && !int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
             ? value
             : fallback;
+
+    private static WindowPlacement? WindowOr(JsonElement root)
+    {
+        if (!root.TryGetProperty("ui.window", out var w) || w.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        double? Number(string name) => w.TryGetProperty(name, out var n) && n.ValueKind == JsonValueKind.Number && n.TryGetDouble(out var v) && double.IsFinite(v) ? v : null;
+        return Number("left") is { } left && Number("top") is { } top && Number("width") is { } width && Number("height") is { } height
+            ? new WindowPlacement(left, top, width, height, w.TryGetProperty("maximized", out var m) && m.ValueKind == JsonValueKind.True)
+            : null;
+    }
 
     private static SubtitleStyle SubtitleOr(JsonElement root, SubtitleStyle fallback)
     {

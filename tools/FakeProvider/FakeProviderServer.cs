@@ -132,7 +132,7 @@ public sealed class FakeProviderServer : IAsyncDisposable
         var file = kind == "live" ? "live-720p.ts" : "vod-1080p.mp4";
         var path = options.MediaFolder is { } folder ? Path.Combine(folder, file) : null;
         return path is not null && File.Exists(path)
-            ? Results.File(path, kind == "live" ? "video/mp2t" : "video/mp4", enableRangeProcessing: true)
+            ? Results.File(path, kind == "live" ? "video/mp2t" : "video/mp4", enableRangeProcessing: options.RangeRequests)
             : Results.NotFound();
     }
 }
