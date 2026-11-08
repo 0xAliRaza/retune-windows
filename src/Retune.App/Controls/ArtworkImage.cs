@@ -50,7 +50,20 @@ public sealed class ArtworkImage : Control
 
     public ArtworkImage()
     {
-        Unloaded += (_, _) => _loading?.Cancel();
+        Unloaded += (_, _) =>
+        {
+            _loading?.Cancel();
+            _loading = null;
+        };
+
+        // A recycled tile scrolled back in with the same item: finish the load that Unloaded cancelled.
+        Loaded += (_, _) =>
+        {
+            if (_loading is null && Source is not null && GetValue(ImageKey.DependencyProperty) is null)
+            {
+                Reload();
+            }
+        };
     }
 
     public Uri? Source

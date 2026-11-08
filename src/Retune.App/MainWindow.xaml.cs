@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Interop;
 using Retune.App.Composition;
+using Retune.App.Interop;
 using Retune.App.Services;
 using Retune.App.Windowing;
 using Retune.Core.Models;
@@ -23,6 +24,7 @@ public partial class MainWindow : FluentWindow
     private readonly FullScreenController _fullScreen;
     private PlayerViewModel? _player;
     private SystemMediaControls? _mediaControls;
+    private bool _preparedForExit;
     private readonly ScaleTransform _zoom = new();
     private bool _playerEnteredFullScreen;
 
@@ -39,7 +41,10 @@ public partial class MainWindow : FluentWindow
         PlayerChrome.Host = Overlay;
         PlayerLayer.Visibility = Visibility.Visible; // so the video window is created at startup; hidden once it exists
         Video.VideoWindowCreated += OnVideoWindowCreated;
-        RestorePlacement(container.Settings.Current.Window);
+        if (!container.Paths.IsIsolated)
+        {
+            SourceInitialized += (_, _) => RestorePlacement(container.Settings.Current.Window);
+        }
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewMouseDown += OnMouseBack;
         Loaded += (_, _) => Controls.TitleBarAccessibility.NameCaptionButtons(AppTitleBar);
@@ -65,47 +70,71 @@ public partial class MainWindow : FluentWindow
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        Container.Settings.Update(s => s with { Window = CurrentPlacement() });
-
-        // mpv must be destroyed before its window; the final progress is saved first.
-        _mediaControls?.Dispose();
-        _mediaControls = null;
-        Container.ShutdownPlayer();
+        PrepareForExit();
         base.OnClosing(e);
     }
 
-    /// <summary>Reopens where Retune was left, if that spot is still on a connected screen.</summary>
+    /// <summary>
+    /// Saves where the window is and shuts the player down (final progress first, mpv before its window). Runs on close
+    /// and when Windows ends the session, where Closing isn't raised. Safe to call twice.
+    /// </summary>
+    public void PrepareForExit()
+    {
+        if (_preparedForExit)
+        {
+            return;
+        }
+
+        _preparedForExit = true;
+        if (!Container.Paths.IsIsolated && CurrentPlacement() is { } placement)
+        {
+            Container.Settings.Update(s => s with { Window = placement });
+        }
+
+        _mediaControls?.Dispose();
+        _mediaControls = null;
+        Container.ShutdownPlayer();
+    }
+
+    /// <summary>
+    /// Reopens where Retune was left. Windows' own placement call keeps the window on a connected screen and handles
+    /// per-monitor DPI and maximised state.
+    /// </summary>
     private void RestorePlacement(WindowPlacement? saved)
     {
-        var screen = (SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
-        if (saved is null || !saved.IsValid(MinWidth, MinHeight) || !saved.IsOnScreen([screen]))
+        if (saved is null || !saved.IsValid(MinWidth, MinHeight))
         {
             return;
         }
 
         WindowStartupLocation = WindowStartupLocation.Manual;
-        Left = saved.Left;
-        Top = saved.Top;
-        Width = saved.Width;
-        Height = saved.Height;
-        if (saved.Maximized)
-        {
-            WindowState = WindowState.Maximized;
-        }
+        NativeMethods.SetPlacement(new WindowInteropHelper(this).Handle, saved);
     }
 
-    /// <summary>The normal bounds and maximised state to reopen with (full screen counts as what it replaced).</summary>
-    private WindowPlacement CurrentPlacement()
+    /// <summary>The normal bounds and maximised state to reopen with (full screen is left first, so it counts as what it replaced).</summary>
+    private WindowPlacement? CurrentPlacement()
     {
-        var (bounds, state) = _fullScreen.IsFullScreen
-            ? _fullScreen.Before
-            : (WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds, WindowState);
-        return new WindowPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height, state == WindowState.Maximized);
-    }
+        if (_fullScreen.IsFullScreen)
+        {
+            _fullScreen.Exit();
+        }
 
+        return NativeMethods.GetPlacement(new WindowInteropHelper(this).Handle);
+    }
     private void OnVideoWindowCreated(object? sender, EventArgs e)
     {
-        _player = Container.AttachVideo(Video.VideoWindow, Dispatcher);
+        try
+        {
+            _player = Container.AttachVideo(Video.VideoWindow, Dispatcher);
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException or Mpv.MpvException)
+        {
+            // Browsing still works; playing can't. Say so once instead of crashing at startup.
+            Container.Log.Failure("player", "The video engine failed to start.", ex);
+            _ = Container.Dialogs.ConfirmAsync("The video engine failed to start", "Retune can browse your playlists but can't play video. Reinstalling Retune usually fixes this.", "OK", destructive: false);
+            return;
+        }
+
         PlayerChrome.DataContext = _player;
         _mediaControls = SystemMediaControls.TryCreate(new WindowInteropHelper(this).Handle, _player, Dispatcher);
         Video.Width = double.NaN;
@@ -129,13 +158,21 @@ public partial class MainWindow : FluentWindow
                 _playerEnteredFullScreen = false;
             }
 
-            Shell.Recompute();
+            // No rebuild here: the browse list refreshes in place (PlayingItemChanged), so it keeps its scroll position.
         };
         UpdatePlayerLayer();
     }
 
-    private void UpdatePlayerLayer() =>
-        PlayerLayer.Visibility = _player?.IsPresented == true ? Visibility.Visible : Visibility.Collapsed;
+    private void UpdatePlayerLayer()
+    {
+        var presented = _player?.IsPresented == true;
+        PlayerLayer.Visibility = presented ? Visibility.Visible : Visibility.Collapsed;
+        if (presented)
+        {
+            // Out of the browse controls (search box, tiles) now hidden behind the video.
+            Keyboard.Focus(this);
+        }
+    }
 
     private void ToggleFullScreen()
     {
@@ -162,12 +199,26 @@ public partial class MainWindow : FluentWindow
 
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var mods = Keyboard.Modifiers;
-        e.Handled = _player?.IsPresented == true ? HandlePlayerKey(_player, key, mods) : HandleAppKey(key, mods);
+        if (_player?.IsPresented == true)
+        {
+            // Keys the player doesn't use must not reach the hidden browse controls (typing into the search box,
+            // Tab moving focus behind the video). Alt combinations stay with Windows (Alt+F4, Alt+Space).
+            e.Handled = HandlePlayerKey(_player, key, mods) || !mods.HasFlag(ModifierKeys.Alt);
+        }
+        else
+        {
+            e.Handled = HandleAppKey(key, mods);
+        }
     }
 
     /// <summary>Player shortcuts (spec ui-player §3.1). Ctrl combinations fall through to the app.</summary>
     private bool HandlePlayerKey(PlayerViewModel p, Key key, ModifierKeys mods)
     {
+        if (mods.HasFlag(ModifierKeys.Alt))
+        {
+            return false; // AltGr (Ctrl+Alt) characters and Windows' Alt shortcuts are not player keys
+        }
+
         if (mods.HasFlag(ModifierKeys.Control))
         {
             return HandleAppKey(key, mods);
@@ -213,9 +264,10 @@ public partial class MainWindow : FluentWindow
     /// <summary>App-wide shortcuts (spec ui-player §3.2, mapped to Windows conventions).</summary>
     private bool HandleAppKey(Key key, ModifierKeys mods)
     {
-        var ctrl = mods.HasFlag(ModifierKeys.Control);
-        var shift = mods.HasFlag(ModifierKeys.Shift);
+        // AltGr arrives as Ctrl+Alt: typing "}" or "~" on a German layout must not zoom or switch sections.
         var alt = mods.HasFlag(ModifierKeys.Alt);
+        var ctrl = mods.HasFlag(ModifierKeys.Control) && !alt;
+        var shift = mods.HasFlag(ModifierKeys.Shift);
         var typing = Keyboard.FocusedElement is System.Windows.Controls.TextBox or System.Windows.Controls.PasswordBox;
         var playing = _player?.IsPresented == true;
 
@@ -232,7 +284,7 @@ public partial class MainWindow : FluentWindow
             case Key.F5:
                 _ = Shell.RefreshAsync();
                 break;
-            case Key.N when ctrl: _ = Shell.AddPlaylistAsync(); break;
+            case Key.N when ctrl && !playing: _ = Shell.AddPlaylistAsync(); break; // a dialog would open under the video
             case Key.L when ctrl: Shell.LockAll(); break;
             case Key.B when ctrl && !playing: Shell.ToggleSidebar(); break;
             case Key.OemPlus or Key.Add when ctrl: Shell.ZoomIn(); break;

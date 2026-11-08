@@ -53,6 +53,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     private IReadOnlyList<EpgEntry> _guide = [];
     private long? _lastSubtitle;
     private PlaybackItem? _shownItem;
+    private PlaybackItem? _guideLoadedFor;
 
     public PlayerViewModel(IPlayerEngine engine, PlaybackSession session, PlaylistController playlists, SettingsService settings, IKeepAwake keepAwake, TimeProvider time, Action<Action> post, IAppLog log)
     {
@@ -625,9 +626,16 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
             Readout = null;
             AudioTracks = SubtitleTracks = [];
             SubtitleDelay = 0;
-            LoadGuide();
+            _guideLoadedFor = null;
             RebuildList();
             PlayingItemChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        // The guide is fetched once the channel actually plays, not for every channel passed while zapping.
+        if (State.Phase == PlaybackPhase.Playing && State.Item is { } playing && !ReferenceEquals(_guideLoadedFor, playing))
+        {
+            _guideLoadedFor = playing;
+            LoadGuide();
         }
 
         UpdateSpinner();

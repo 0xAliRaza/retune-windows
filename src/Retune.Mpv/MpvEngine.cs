@@ -13,7 +13,9 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
     private readonly Action<Action> _post;
     private bool _pausedForCache;
     private bool _seeking;
+    private static readonly TimeSpan ScreenshotShutdownWait = TimeSpan.FromSeconds(5);
     private IReadOnlyList<MediaTrack> _tracks = [];
+    private Task<bool>? _screenshot;
 
     public MpvEngine(MpvClient mpv, Action<Action> post)
     {
@@ -146,20 +148,31 @@ public sealed class MpvEngine : IPlayerEngine, IDisposable
             AvSyncSeconds: _mpv.GetDouble("avsync"));
     }
 
-    public Task<bool> ScreenshotAsync(string path) => Task.Run(() =>
+    public Task<bool> ScreenshotAsync(string path)
     {
-        try
+        // Kept so Dispose can wait for it: mpv must not be destroyed while it is still writing the picture.
+        var shot = Task.Run(() =>
         {
-            _mpv.Command("screenshot-to-file", path, "video");
-            return File.Exists(path);
-        }
-        catch (MpvException)
-        {
-            return false;
-        }
-    });
+            try
+            {
+                _mpv.Command("screenshot-to-file", path, "video");
+                return File.Exists(path);
+            }
+            catch (MpvException)
+            {
+                return false;
+            }
+        });
+        _screenshot = shot;
+        return shot;
+    }
 
-    public void Dispose() => _mpv.EventReceived -= OnMpvEvent;
+    /// <summary>Waits briefly for a screenshot in progress, since mpv is destroyed right after.</summary>
+    public void Dispose()
+    {
+        _mpv.EventReceived -= OnMpvEvent;
+        _screenshot?.Wait(ScreenshotShutdownWait);
+    }
 
     private void OnMpvEvent(object? sender, MpvEvent e)
     {

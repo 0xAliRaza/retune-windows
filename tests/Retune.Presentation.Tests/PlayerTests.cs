@@ -339,6 +339,8 @@ public sealed class PlayerTests : IAsyncLifetime
     public async Task The_live_guide_shows_now_and_next_from_the_provider()
     {
         _player.Play(Channels());
+        Assert.Null(_player.NowText); // not fetched while the channel is still tuning (zapping past it)
+        FirstFrame();
 
         for (var i = 0; i < 100 && _player.NowText is null; i++)
         {

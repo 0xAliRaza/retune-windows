@@ -84,5 +84,10 @@ var
   ExitCode: Integer;
 begin
   if (CurUninstallStep = usUninstall) and PurgeUserData then
-    Exec(ExpandConstant('{app}\Retune.exe'), '--purge-data', '', SW_HIDE, ewWaitUntilTerminated, ExitCode);
+  begin
+    if (not Exec(ExpandConstant('{app}\Retune.exe'), '--purge-data', '', SW_HIDE, ewWaitUntilTerminated, ExitCode) or (ExitCode <> 0)) and not UninstallSilent() then
+      MsgBox('Some of your Retune data couldn''t be removed (a file may be in use).' + #13#10#13#10 +
+        'You can delete these folders yourself: ' + ExpandConstant('{userappdata}\Retune') + ' and ' + ExpandConstant('{localappdata}\Retune') + '.',
+        mbInformation, MB_OK);
+  end;
 end;

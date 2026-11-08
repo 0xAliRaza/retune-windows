@@ -30,7 +30,7 @@ public static class DataPurge
         return new Result(credentials, removed);
     }
 
-    /// <summary>A misconfigured path must never take a drive or a user's profile with it.</summary>
+    /// <summary>Only folders named Retune, and never a drive, a profile or a system folder, whatever the paths say.</summary>
     internal static void EnsureSafeToDelete(string folder)
     {
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder));
@@ -43,7 +43,8 @@ public static class DataPurge
             Environment.GetFolderPath(Environment.SpecialFolder.Windows),
         }.Where(p => p.Length > 0).Select(Path.TrimEndingDirectorySeparator);
 
-        if (full.Length <= root.Length || protectedFolders.Contains(full, StringComparer.OrdinalIgnoreCase))
+        if (full.Length <= root.Length || protectedFolders.Contains(full, StringComparer.OrdinalIgnoreCase)
+            || !string.Equals(Path.GetFileName(full), "Retune", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Refusing to delete a drive root or a system folder.");
         }

@@ -112,7 +112,14 @@ public sealed class PinAttemptLimiter(TimeProvider time)
     private DateTimeOffset _lockedUntil = DateTimeOffset.MinValue;
 
     /// <summary>How long until another attempt is allowed (zero when allowed now).</summary>
-    public TimeSpan RemainingLockout => _lockedUntil > time.GetUtcNow() ? _lockedUntil - time.GetUtcNow() : TimeSpan.Zero;
+    public TimeSpan RemainingLockout
+    {
+        get
+        {
+            var left = _lockedUntil - time.GetUtcNow(); // one clock read, so it can't go negative at the boundary
+            return left > TimeSpan.Zero ? left : TimeSpan.Zero;
+        }
+    }
 
     public bool CanAttempt => RemainingLockout == TimeSpan.Zero;
 

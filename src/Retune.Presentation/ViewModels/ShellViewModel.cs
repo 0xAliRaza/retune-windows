@@ -627,6 +627,16 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
                 _details.Clear();
                 Detail = null;
+
+                // Category ids belong to one playlist: start the new one on its own default, without a stale search.
+                Filter = CategoryFilter.All;
+                _appliedSearch = string.Empty;
+                SearchText = string.Empty;
+                if (Playlists.Active is { } switched)
+                {
+                    _defaultFilterApplied.Remove(switched.Id);
+                }
+
                 Recompute();
                 break;
             case nameof(PlaylistController.Index) when Playlists is { Index: not null, Active: { } active }:

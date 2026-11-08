@@ -19,7 +19,16 @@ public static class SearchText
         }
 
         // NFKC folds width and compatibility forms (ﬁ → fi, ｂ → b); NFD then splits accents off their letters.
-        var decomposed = text.Normalize(NormalizationForm.FormKC).Normalize(NormalizationForm.FormD);
+        string decomposed;
+        try
+        {
+            decomposed = text.Normalize(NormalizationForm.FormKC).Normalize(NormalizationForm.FormD);
+        }
+        catch (ArgumentException)
+        {
+            // Invalid UTF-16 (a lone surrogate pasted into the search box): fold case only.
+            return text.ToLowerInvariant();
+        }
         var builder = new StringBuilder(decomposed.Length);
         foreach (var c in decomposed)
         {

@@ -217,6 +217,23 @@ public sealed class ShellTests
     }
 
     [Fact]
+    public async Task A_saved_password_is_never_sent_to_a_different_server()
+    {
+        await using var app = await AppHarness.StartAsync();
+        var playlist = await app.AddDemoAsync();
+        var moved = playlist with { Source = new XtreamSource("http://other.example:8080", "demo") };
+
+        var error = await Assert.ThrowsAsync<Core.Errors.RetuneException>(() => app.Controller.UpdateAsync(moved, newPassword: null));
+
+        Assert.Contains("enter the password again", error.Message, StringComparison.Ordinal);
+        Assert.Equal(playlist, app.Controller.Playlists.Single());
+
+        // Same server, password left blank: the saved one is reused.
+        await app.Controller.UpdateAsync(playlist with { Name = "Renamed" }, newPassword: null);
+        Assert.Equal("Renamed", app.Controller.Playlists.Single().Name);
+    }
+
+    [Fact]
     public async Task A_failed_catalog_cache_save_is_logged_and_browsing_still_works()
     {
         await using var app = await AppHarness.StartAsync();

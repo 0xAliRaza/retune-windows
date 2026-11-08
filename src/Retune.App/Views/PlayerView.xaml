@@ -138,8 +138,8 @@
         <DockPanel Margin="0,0,0,6" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}">
           <TextBlock DockPanel.Dock="Left" MinWidth="56" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="#E6FFFFFF" Text="{Binding PositionText}" VerticalAlignment="Center" />
           <TextBlock DockPanel.Dock="Right" MinWidth="64" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="#E6FFFFFF" Text="{Binding RemainingText}" TextAlignment="Right" VerticalAlignment="Center" />
-          <Slider x:Name="Scrubber" AutomationProperties.Name="Position" Margin="10,0" Minimum="0" Maximum="{Binding Duration, Mode=OneWay}" Focusable="False" IsMoveToPointEnabled="True"
-                  PreviewMouseLeftButtonDown="OnScrubStart" PreviewMouseLeftButtonUp="OnScrubEnd" />
+          <Slider x:Name="Scrubber" LostMouseCapture="OnScrubLost" AutomationProperties.Name="Position" Margin="10,0" Minimum="0" Maximum="{Binding Duration, Mode=OneWay}" Focusable="False" IsMoveToPointEnabled="True"
+                  />
         </DockPanel>
         <DockPanel>
           <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">

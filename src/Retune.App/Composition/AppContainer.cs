@@ -23,6 +23,9 @@ public sealed class AppContainer : IDisposable
 {
     public const string UserAgent = "Retune/0.1 (Windows)";
 
+    /// <summary>mpv warnings kept per minute (a broken stream can print hundreds a second).</summary>
+    private const int MpvLogLinesPerMinute = 30;
+
     private readonly HttpFetcher _apiFetcher;
     private readonly HttpFetcher _artworkFetcher;
     private readonly CatalogCache _catalogs;
@@ -38,7 +41,7 @@ public sealed class AppContainer : IDisposable
         var data = new JsonFileStore(Paths.DataDirectory, Time);
         var protectedData = new JsonFileStore(Paths.DataDirectory, Time, encrypt: true);
         var playlists = new PlaylistStore(protectedData);
-        Settings = new SettingsService(new SettingsStore(data), Time);
+        Settings = new SettingsService(new SettingsStore(data), Time, Log);
         _catalogs = new CatalogCache(Paths.CatalogDirectory, Time);
         var secrets = new CredentialManagerSecretStore(Paths.SecretPrefix);
 
@@ -46,7 +49,7 @@ public sealed class AppContainer : IDisposable
         _artworkFetcher = new HttpFetcher(maxConnectionsPerServer: 8, UserAgent, idleTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(60));
         Artwork = new ArtworkLoader(new ArtworkCache(Paths.ArtworkDirectory, _artworkFetcher, time: Time));
 
-        Library = new LibraryService(new LibraryStore(data), Time);
+        Library = new LibraryService(new LibraryStore(data), Time, Log);
         var source = new CatalogSource(_apiFetcher, new LocalFileReader(), secrets, Time);
         Playlists = new PlaylistController(playlists, _catalogs, secrets, Settings, source, Library, Time, Log);
         Dialogs = new WpfDialogs(this);
@@ -100,11 +103,17 @@ public sealed class AppContainer : IDisposable
         void Post(Action action) => dispatcher.BeginInvoke(action);
         var volume = (int)Core.Playback.VolumeLevel.Clamped(Settings.Current.Volume);
         _mpv = MpvClient.Create(MpvOptions.ForEmbeddedPlayer(videoWindow, volume, "Retune/0.1 (Windows; libmpv)", Silent), logLevel: "warn");
+        var mpvLogLimit = new LogRateLimiter(MpvLogLinesPerMinute, TimeSpan.FromMinutes(1), Time);
         _mpv.EventReceived += (_, e) =>
         {
-            // Runs on mpv's thread; the log is thread-safe and strips URLs and credentials.
-            if (e is MpvLogMessage message)
+            // Runs on mpv's thread; the log is thread-safe, strips URLs and credentials, and is rate-limited here.
+            if (e is MpvLogMessage message && mpvLogLimit.Allow(out var dropped))
             {
+                if (dropped > 0)
+                {
+                    Log.Warning("mpv", $"{dropped} more mpv messages were not logged.");
+                }
+
                 Log.Warning("mpv", $"{message.Prefix}: {message.Text.TrimEnd()}");
             }
         };
@@ -140,6 +149,7 @@ public sealed class AppContainer : IDisposable
         ShutdownPlayer();
         Library.Flush();
         Shell.Dispose();
+        Playlists.Dispose();
         Library.Dispose();
         _catalogs.Dispose();
         _apiFetcher.Dispose();

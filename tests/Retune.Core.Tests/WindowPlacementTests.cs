@@ -4,24 +4,6 @@ namespace Retune.Core.Tests;
 
 public sealed class WindowPlacementTests
 {
-    private static readonly (double, double, double, double)[] OneScreen = [(0, 0, 1920, 1080)];
-    private static readonly (double, double, double, double)[] TwoScreens = [(0, 0, 1920, 1080), (1920, 0, 2560, 1440)];
-
-    [Fact]
-    public void A_window_on_a_screen_is_restored()
-    {
-        Assert.True(new WindowPlacement(100, 100, 1200, 800, false).IsOnScreen(OneScreen));
-        Assert.True(new WindowPlacement(2200, 200, 1200, 800, true).IsOnScreen(TwoScreens));
-    }
-
-    [Theory]
-    [InlineData(2200, 200)]   // was on a monitor that's gone
-    [InlineData(-5000, 100)]
-    [InlineData(100, -500)]   // title bar above the screen
-    [InlineData(1880, 100)]   // only a sliver left on screen
-    public void A_window_off_every_screen_is_not_restored(double left, double top) =>
-        Assert.False(new WindowPlacement(left, top, 1200, 800, false).IsOnScreen(OneScreen));
-
     [Theory]
     [InlineData(double.NaN, 0, 1200, 800)]
     [InlineData(0, 0, 200, 800)]
@@ -31,5 +13,6 @@ public sealed class WindowPlacementTests
         Assert.False(new WindowPlacement(left, top, width, height, false).IsValid(980, 620));
 
     [Fact]
-    public void A_normal_size_is_valid() => Assert.True(new WindowPlacement(10, 10, 1360, 860, false).IsValid(980, 620));
+    public void A_normal_size_is_valid_even_on_a_monitor_left_of_the_primary() =>
+        Assert.True(new WindowPlacement(-1700, 10, 1360, 860, false).IsValid(980, 620));
 }

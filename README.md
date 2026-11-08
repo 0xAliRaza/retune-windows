@@ -106,6 +106,8 @@ so their names stay out of sight until you open the section), clearing watch his
 | Poster and logo cache, logs | `%LOCALAPPDATA%\Retune` | Disposable. Logs never contain URLs, user names or passwords. |
 
 Retune connects only to your provider and to the artwork hosts your playlist names. It sends no telemetry.
+Connections to your provider's API and to artwork servers verify HTTPS certificates. Video streams over HTTPS don't yet:
+the bundled libmpv can't check every valid certificate chain, so this is first on the [Roadmap](#roadmap).
 mpv runs with scripts, youtube-dl and unsafe playlists disabled, every network response is size-capped, and
 stream URLs are checked against an allowlist of schemes.
 
@@ -150,19 +152,24 @@ to the macOS version.
 
 Planned, roughly in order. Nothing here is promised by a date.
 
-1. **Seeking on every provider**: some servers don't allow jumping ahead in a stream (no HTTP range support).
+1. **Verified HTTPS for video streams**: check certificates for HTTPS streams too (using Windows' trusted roots), with
+   a clear message and an opt-out for providers whose certificates can't be verified. Today only the API and artwork
+   connections are verified.
+2. **Seeking on every provider**: some servers don't allow jumping ahead in a stream (no HTTP range support).
    Retune now says so instead of doing nothing; next is making forward jumps work there too.
-2. **Code-signed releases**, so Windows SmartScreen stops warning on download and install. This needs a code-signing
+3. **Code-signed releases**, so Windows SmartScreen stops warning on download and install. This needs a code-signing
    certificate; until then builds are unsigned (see [Install](#install)).
-3. **A full TV guide**: a schedule grid for live channels from the provider's EPG, beyond today's now/next line.
-4. **Catch-up (timeshift)** on live channels whose provider offers it: watch what aired earlier.
-5. **Picture-in-picture**: a small always-on-top player while you browse or work.
-6. **In-app updates** from GitHub Releases, verified against published checksums.
-7. **A smaller download**: about 50 MB of the package is a Windows component used only for the media keys and
+4. **A full TV guide**: a schedule grid for live channels from the provider's EPG, beyond today's now/next line.
+5. **Catch-up (timeshift)** on live channels whose provider offers it: watch what aired earlier.
+6. **Picture-in-picture**: a small always-on-top player while you browse or work.
+7. **In-app updates** from GitHub Releases, verified against published checksums.
+8. **A smaller download**: about 50 MB of the package is a Windows component used only for the media keys and
    flyout; projecting just the part Retune uses removes most of it.
-8. **Smoother grid scrolling at very large sizes** (60,000+ posters): recycle tiles instead of rebuilding rows.
-9. **1.0 release**: a 4-hour playback soak test (a 1-hour one passes today), a final review, version 1.0.
-10. **Linux**: a version for Ubuntu and other distributions, sharing the .NET core and view models with an Avalonia
+9. **Smoother grid scrolling at very large sizes** (60,000+ posters): recycle tiles instead of rebuilding rows.
+10. **1.0 release**: a 4-hour playback soak test (a 1-hour one passes today), a final review, version 1.0.
+11. **Hardening**: keep artwork requests off your local network, restrict which protocols streams may use inside
+    HLS/DASH, limit concurrent artwork downloads, and clean up very old history entries saved before locators.
+12. **Linux**: a version for Ubuntu and other distributions, sharing the .NET core and view models with an Avalonia
     interface, libmpv in an OpenGL view, the desktop keyring for passwords and MPRIS for media keys.
 ## How it's built
 
@@ -188,7 +195,7 @@ window.
 
 ## Quality
 
-- **535 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
+- **541 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
   HTTP limits and timeouts against a local server, view models against an in-process fake provider, and real mpv
   playback of generated media. CI runs them on every push.
 - **Zero analyzer warnings**: `latest-recommended` analysis with warnings as errors.

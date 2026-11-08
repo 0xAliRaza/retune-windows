@@ -27,10 +27,9 @@ public partial class App : Application
             return;
         }
 
-        var dev = DevOptions.Parse(e.Args);
-
         // Isolated dev and test runs (RETUNE_DATA_DIR) never meet the user's own Retune: no lock, no bringing it forward.
-        var isolated = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Infrastructure.Storage.AppPaths.DataDirectoryVariable));
+        var isolated = Infrastructure.Storage.AppPaths.ForCurrentUser().IsIsolated;
+        var dev = DevOptions.Parse(e.Args, isolated);
         if (dev.RenderFolder is null && !isolated && !ClaimSingleInstance())
         {
             Shutdown();
@@ -65,6 +64,7 @@ public partial class App : Application
         var window = new MainWindow(_container) { ShowActivated = !dev.NoActivate };
         dev.ApplyBounds(window);
         MainWindow = window;
+        SessionEnding += (_, _) => window.PrepareForExit(); // sign-out or restart: Closing isn't raised
         window.Show();
         await _container.Playlists.InitializeAsync().ConfigureAwait(true);
         if (dev is { PerfReport: { } report, DemoProvider: { } provider })
@@ -98,7 +98,7 @@ public partial class App : Application
     {
         try
         {
-            var paths = Infrastructure.Storage.AppPaths.ForCurrentUser();
+            var paths = Infrastructure.Storage.AppPaths.ForRealUser();
             Infrastructure.Storage.DataPurge.Run(paths, new Infrastructure.Secrets.CredentialManagerSecretStore(paths.SecretPrefix));
             return 0;
         }
@@ -117,7 +117,7 @@ public partial class App : Application
             return true;
         }
 
-        Interop.NativeMethods.ActivateExistingWindow("Retune");
+        Interop.NativeMethods.ActivateExistingWindow();
         return false;
     }
 }

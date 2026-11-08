@@ -72,6 +72,9 @@ public sealed class RetuneException : Exception
     public static RetuneException MissingPassword() =>
         new(ProblemKind.MissingPassword, "The saved password for this playlist is missing. Edit the playlist to re-enter it.");
 
+    public static RetuneException PasswordForNewServer() =>
+        new(ProblemKind.MissingPassword, "The server changed, so enter the password again. Saved passwords are only sent to the server they were saved for.");
+
     public static RetuneException SecretStore(int code) =>
         new(ProblemKind.SecretStore, $"The password couldn't be saved to Windows Credential Manager (error {code}).");
 

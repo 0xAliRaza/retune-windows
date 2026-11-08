@@ -74,6 +74,7 @@ internal sealed class AppHarness : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Shell.Dispose();
+        Controller.Dispose();
         Library.Dispose();
         SettingsService.Dispose();
         _fetcher.Dispose();

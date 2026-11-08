@@ -22,6 +22,16 @@ public static class UrlPolicy
         && HasExplicitAuthority(url!, uri.Scheme);
 
     /// <summary>True when the text literally starts with <c>http://</c> or <c>https://</c> (any case).</summary>
+    /// <summary>
+    /// Same scheme, host and port. A saved password is only reused for its own server: changing any of these needs
+    /// the password again. Unparseable addresses never count as the same.
+    /// </summary>
+    public static bool SameOrigin(string? a, string? b) =>
+        Uri.TryCreate(a, UriKind.Absolute, out var x) && Uri.TryCreate(b, UriKind.Absolute, out var y)
+        && string.Equals(x.Scheme, y.Scheme, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(x.IdnHost, y.IdnHost, StringComparison.OrdinalIgnoreCase)
+        && x.Port == y.Port;
+
     public static bool HasHttpScheme(string text)
     {
         ArgumentNullException.ThrowIfNull(text);

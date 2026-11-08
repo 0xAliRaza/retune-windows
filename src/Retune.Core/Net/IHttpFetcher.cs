@@ -53,5 +53,5 @@ public static class FetchLimits
     public const long MaxApiBytes = 256L << 20;
 
     /// <summary>Artwork (32 MiB).</summary>
-    public const long MaxArtworkBytes = 32L << 20;
+    public const long MaxArtworkBytes = 16L << 20;
 }

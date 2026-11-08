@@ -19,8 +19,7 @@ public sealed class DataPurgeTests : IDisposable
     [Fact]
     public void Removes_saved_passwords_data_cache_and_logs()
     {
-        var root = Path.Combine(_temp.Path, "Retune");
-        var paths = new AppPaths(Path.Combine(root, "Data"), Path.Combine(root, "Local", "Cache"));
+        var paths = new AppPaths(Path.Combine(_temp.Path, "Roaming", "Retune"), Path.Combine(_temp.Path, "Local", "Retune", "Cache"));
         Directory.CreateDirectory(paths.CatalogDirectory);
         Directory.CreateDirectory(paths.ArtworkDirectory);
         Directory.CreateDirectory(paths.LogDirectory);
@@ -31,14 +30,14 @@ public sealed class DataPurgeTests : IDisposable
 
         Assert.Equal(1, result.Credentials);
         Assert.False(Directory.Exists(paths.DataDirectory));
-        Assert.False(Directory.Exists(Path.Combine(root, "Local")));
+        Assert.False(Directory.Exists(Path.Combine(_temp.Path, "Local", "Retune")));
         Assert.Equal(2, result.RemovedFolders.Count);
     }
 
     [Fact]
     public void Nothing_to_remove_is_fine()
     {
-        var paths = new AppPaths(Path.Combine(_temp.Path, "none"), Path.Combine(_temp.Path, "none-local", "Cache"));
+        var paths = new AppPaths(Path.Combine(_temp.Path, "none", "Retune"), Path.Combine(_temp.Path, "none-local", "Retune", "Cache"));
 
         var result = DataPurge.Run(paths, _secrets);
 
@@ -52,6 +51,7 @@ public sealed class DataPurgeTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => DataPurge.EnsureSafeToDelete(Path.GetPathRoot(_temp.Path)!));
         Assert.Throws<InvalidOperationException>(() => DataPurge.EnsureSafeToDelete(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)));
         Assert.Throws<InvalidOperationException>(() => DataPurge.EnsureSafeToDelete(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + Path.DirectorySeparatorChar));
+        Assert.Throws<InvalidOperationException>(() => DataPurge.EnsureSafeToDelete(Path.Combine(_temp.Path, "Documents")));
         DataPurge.EnsureSafeToDelete(Path.Combine(_temp.Path, "Retune"));
     }
 }

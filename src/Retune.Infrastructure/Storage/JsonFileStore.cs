@@ -55,6 +55,12 @@ public sealed class JsonFileStore
         {
             return null;
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Held by another program (backup, antivirus) or unreadable: start without it, leave the file alone.
+            _logger.LogWarning(ex, "{File} couldn't be read now; using defaults.", name);
+            return null;
+        }
 
         try
         {
@@ -63,8 +69,16 @@ public sealed class JsonFileStore
         catch (Exception ex) when (ex is JsonException or FormatException or NotSupportedException or InvalidOperationException)
         {
             var backup = $"{path}.corrupt-{_time.GetUtcNow().ToUnixTimeSeconds()}";
-            File.Move(path, backup, overwrite: true);
-            _logger.LogWarning(ex, "{File} was unreadable and was moved aside as {Backup}.", name, Path.GetFileName(backup));
+            try
+            {
+                File.Move(path, backup, overwrite: true);
+                _logger.LogWarning(ex, "{File} was unreadable and was moved aside as {Backup}.", name, Path.GetFileName(backup));
+            }
+            catch (Exception moveError) when (moveError is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(moveError, "{File} was unreadable and couldn't be moved aside.", name);
+            }
+
             return null;
         }
     }

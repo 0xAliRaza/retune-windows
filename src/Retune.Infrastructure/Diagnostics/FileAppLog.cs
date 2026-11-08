@@ -20,7 +20,7 @@ public sealed class FileAppLog : IAppLog
     public FileAppLog(string directory, TimeProvider time)
     {
         ArgumentException.ThrowIfNullOrEmpty(directory);
-        Directory.CreateDirectory(directory);
+        Storage.PrivateFolder.Ensure(directory); // readable only by this user (and SYSTEM), like the data folder
         _path = Path.Combine(directory, "retune.log");
         _previous = Path.Combine(directory, "retune.1.log");
         _time = time ?? throw new ArgumentNullException(nameof(time));

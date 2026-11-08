@@ -159,6 +159,7 @@ public sealed class PlaybackSession : IDisposable
     /// <summary>Leaves the player: saves the final progress and releases the stream.</summary>
     public void Stop()
     {
+        _generation++; // a zap, retry or countdown already queued must not run after this
         FinishCurrent();
         _loadIssued = false;
         _engine.StopPlayback();
@@ -170,6 +171,7 @@ public sealed class PlaybackSession : IDisposable
 
     public void Dispose()
     {
+        _generation++;
         CancelTimers();
         _engine.EventRaised -= OnEngineEvent;
     }
@@ -185,7 +187,12 @@ public sealed class PlaybackSession : IDisposable
 
     private void LoadCurrent(StartPoint startPoint, double? explicitStart = null)
     {
-        var item = _lineup!.Items[_index];
+        if (_lineup is null || _index < 0 || _index >= _lineup.Items.Count)
+        {
+            return;
+        }
+
+        var item = _lineup.Items[_index];
         _generation++;
         CancelTimers();
 
@@ -381,7 +388,12 @@ public sealed class PlaybackSession : IDisposable
         Update(State with { UpNextSecondsLeft = AutoplayCountdownSeconds });
         _autoplayTimer = Schedule(TimeSpan.FromSeconds(1), () =>
         {
-            var left = (State.UpNextSecondsLeft ?? 1) - 1;
+            if (State.UpNextSecondsLeft is not { } current)
+            {
+                return; // cancelled while this tick was already queued
+            }
+
+            var left = current - 1;
             if (left > 0)
             {
                 Update(State with { UpNextSecondsLeft = left });

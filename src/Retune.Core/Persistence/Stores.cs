@@ -57,12 +57,15 @@ public interface ILocalFileReader
 
 /// <summary>
 /// Coalesces rapid changes into one save: each <see cref="Schedule"/> replaces the pending snapshot and
-/// restarts the delay. <see cref="Flush"/> writes the pending snapshot now (on quit).
+/// restarts the delay. <see cref="Flush"/> writes the pending snapshot now (on quit). Writes never overlap, so an
+/// older snapshot can't land after a newer one, and a failed save (disk full, file held by another program) is
+/// reported to <paramref name="onError"/> and kept pending for the next attempt instead of crashing the app.
 /// </summary>
-public sealed class DebouncedWriter<T>(Action<T> write, TimeSpan delay, TimeProvider time) : IDisposable
+public sealed class DebouncedWriter<T>(Action<T> write, TimeSpan delay, TimeProvider time, Action<Exception>? onError = null) : IDisposable
     where T : class
 {
     private readonly Lock _gate = new();
+    private readonly Lock _writing = new();
     private T? _pending;
     private ITimer? _timer;
 
@@ -79,18 +82,36 @@ public sealed class DebouncedWriter<T>(Action<T> write, TimeSpan delay, TimeProv
 
     public void Flush()
     {
-        T? snapshot;
-        lock (_gate)
+        // Held across the write: a Flush on quit waits for a timer write already in progress, then writes the newest.
+        lock (_writing)
         {
-            snapshot = _pending;
-            _pending = null;
-            _timer?.Dispose();
-            _timer = null;
-        }
+            T? snapshot;
+            lock (_gate)
+            {
+                snapshot = _pending;
+                _pending = null;
+                _timer?.Dispose();
+                _timer = null;
+            }
 
-        if (snapshot is not null)
-        {
-            write(snapshot);
+            if (snapshot is null)
+            {
+                return;
+            }
+
+            try
+            {
+                write(snapshot);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                lock (_gate)
+                {
+                    _pending ??= snapshot; // retried with the next change or the final flush
+                }
+
+                onError?.Invoke(ex);
+            }
         }
     }
 

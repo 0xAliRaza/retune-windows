@@ -41,7 +41,9 @@ public static partial class LogRedaction
             return string.Empty;
         }
 
-        var withoutUrls = XtreamPathPattern().Replace(UrlPattern().Replace(text, Url), m => $"/{m.Groups["kind"].Value}/{Secret}/{Secret}/");
+        // Stream paths first: the URL pass would otherwise consume their start and leave part of a password behind.
+        var withoutPaths = XtreamPathPattern().Replace(text, m => $"/{m.Groups["kind"].Value}/{Secret}/{Secret}/");
+        var withoutUrls = UrlPattern().Replace(withoutPaths, Url);
         return SecretPattern().Replace(withoutUrls, m => $"{m.Groups["key"].Value}={Secret}");
     }
 
@@ -62,7 +64,8 @@ public static partial class LogRedaction
         return string.Join(Environment.NewLine, lines);
     }
 
-    [GeneratedRegex(@"\b[a-z][a-z0-9+.\-]*://[^\s""'<>]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    /// <summary>Any scheme, even glued to other text ("1http://…"), up to the next whitespace (quotes included).</summary>
+    [GeneratedRegex(@"(?<![a-z0-9+.\-])[a-z][a-z0-9+.\-]*://\S+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UrlPattern();
 
     /// <summary>"/movie/&lt;user&gt;/&lt;password&gt;/…" as mpv sometimes prints it without the scheme and host.</summary>

@@ -35,11 +35,17 @@ if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed.' }
 foreach ($required in 'Retune.exe', 'libmpv-2.dll') {
     if (-not (Test-Path (Join-Path $publish $required))) { throw "The publish output has no $required." }
 }
+
+# Ship only the libmpv that tools/fetch-libmpv.ps1 pinned and verified.
+$pinned = [regex]::Match((Get-Content (Join-Path $PSScriptRoot 'fetch-libmpv.ps1') -Raw), "DllSha256 = '([0-9a-f]{64})'").Groups[1].Value
+$shipped = (Get-FileHash -Algorithm SHA256 -Path (Join-Path $publish 'libmpv-2.dll')).Hash.ToLowerInvariant()
+if (-not $pinned -or $shipped -ne $pinned) { throw "libmpv-2.dll doesn't match the pinned hash ($shipped). Refusing to package it." }
 Copy-Item (Join-Path $repoRoot 'LICENSE') (Join-Path $publish 'LICENSE.txt')
 Copy-Item (Join-Path $repoRoot 'THIRD-PARTY-NOTICES.md') $publish
 
 $zip = Join-Path $dist "Retune-$version-win-x64.zip"
-Compress-Archive -Path (Join-Path $publish '*') -DestinationPath $zip -CompressionLevel Optimal
+# The Retune folder itself, so extracting creates its own folder: DLLs never land loose in Downloads.
+Compress-Archive -Path $publish -DestinationPath $zip -CompressionLevel Optimal
 Write-Host "zip        $zip"
 
 $iscc = @(

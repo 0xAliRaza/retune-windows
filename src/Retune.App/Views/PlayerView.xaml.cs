@@ -16,9 +16,13 @@ public partial class PlayerView : UserControl
     /// <summary>How far one wheel notch scrolls the channel list.</summary>
     private const double ListWheelPixels = 48;
 
+    /// <summary>Smaller scrubber moves than this are treated as a click, not a seek.</summary>
+    private const double ScrubThresholdSeconds = 0.5;
+
     private readonly DispatcherTimer _singleClick;
     private PlayerViewModel? _player;
     private bool _scrubbing;
+    private double _scrubFrom;
     private bool _syncingVolume;
 
     public PlayerView()
@@ -31,6 +35,12 @@ public partial class PlayerView : UserControl
             _player?.TogglePause();
         };
         DataContextChanged += (_, _) => Attach(DataContext as PlayerViewModel);
+
+        // With IsMoveToPointEnabled the slider handles a press on the bar itself, so these must see handled events
+        // too. Otherwise a click (not a drag) never marks scrubbing, playback resets the bar under the pointer, and the
+        // release "seeks" to where it already was.
+        Scrubber.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler(OnScrubStart), handledEventsToo: true);
+        Scrubber.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(OnScrubEnd), handledEventsToo: true);
     }
 
     /// <summary>The overlay window hosting this view: allowed to take keyboard focus only while the list's search box is in use.</summary>
@@ -103,7 +113,7 @@ public partial class PlayerView : UserControl
             return;
         }
 
-        if (e.ClickCount >= 2)
+        if (e.ClickCount == 2)
         {
             _singleClick.Stop();
             _player?.ToggleFullScreen();
@@ -292,13 +302,29 @@ public partial class PlayerView : UserControl
         return null;
     }
 
-    private void OnScrubStart(object sender, MouseButtonEventArgs e) => _scrubbing = true;
+    private void OnScrubStart(object sender, MouseButtonEventArgs e)
+    {
+        _scrubbing = true;
+        _scrubFrom = _player?.Position ?? Scrubber.Value; // where playback is (the slider may already have jumped)
+    }
 
+    /// <summary>Seeks only when the press actually moved the position (a click on the knob must not jump back).</summary>
     private void OnScrubEnd(object sender, MouseButtonEventArgs e)
     {
+        if (!_scrubbing)
+        {
+            return;
+        }
+
         _scrubbing = false;
-        _player?.SeekTo(Scrubber.Value);
+        if (Math.Abs(Scrubber.Value - _scrubFrom) >= ScrubThresholdSeconds)
+        {
+            _player?.SeekTo(Scrubber.Value);
+        }
     }
+
+    /// <summary>A drag interrupted (Alt+Tab) without a release: let the scrubber follow playback again.</summary>
+    private void OnScrubLost(object sender, MouseEventArgs e) => _scrubbing = false;
 
     private void OnVolumeSlider(object sender, RoutedPropertyChangedEventArgs<double> e)
     {

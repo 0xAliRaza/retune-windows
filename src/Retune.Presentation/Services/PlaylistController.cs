@@ -22,11 +22,12 @@ public sealed partial class PlaylistController(
     CatalogSource source,
     LibraryService library,
     TimeProvider time,
-    IAppLog log) : ObservableObject
+    IAppLog log) : ObservableObject, IDisposable
 {
     public const string DownloadingMessage = "Downloading channels, movies and series…";
 
     private int _generation;
+    private CancellationTokenSource _refreshCancel = new();
     private (int Generation, Task Task)? _refresh;
 
     [ObservableProperty]
@@ -111,6 +112,15 @@ public sealed partial class PlaylistController(
     public async Task UpdateAsync(Playlist playlist, string? newPassword)
     {
         ArgumentNullException.ThrowIfNull(playlist);
+        if (string.IsNullOrEmpty(newPassword)
+            && Playlists.FirstOrDefault(p => p.Id == playlist.Id)?.Source is XtreamSource before
+            && playlist.Source is XtreamSource after
+            && !Core.Policies.UrlPolicy.SameOrigin(before.Server, after.Server))
+        {
+            // Otherwise anyone at the open app could send the saved password to a server of their choosing.
+            throw RetuneException.PasswordForNewServer();
+        }
+
         var password = string.IsNullOrEmpty(newPassword) ? secrets.Find(playlist.Id) : newPassword;
         await VerifyAndStoreSecretAsync(playlist, password).ConfigureAwait(true);
         Playlists = [.. Playlists.Select(p => p.Id == playlist.Id ? playlist : p)];
@@ -119,7 +129,7 @@ public sealed partial class PlaylistController(
         if (Active?.Id == playlist.Id)
         {
             Active = playlist;
-            _generation++; // supersede any refresh still using the old details
+            NextGeneration(); // supersede any refresh still using the old details
             await RefreshAsync().ConfigureAwait(true);
         }
     }
@@ -130,12 +140,20 @@ public sealed partial class PlaylistController(
         if (wasActive)
         {
             ActivePlaylistChanging?.Invoke(this, EventArgs.Empty);
-            _generation++;
+            NextGeneration();
         }
 
         Playlists = [.. Playlists.Where(p => p.Id != playlistId)];
         playlists.Save(Playlists);
-        secrets.Remove(playlistId);
+        try
+        {
+            secrets.Remove(playlistId);
+        }
+        catch (RetuneException ex)
+        {
+            // The playlist is already gone from the list; finish removing it and report the leftover secret.
+            log.Failure("playlist delete", "The saved password couldn't be removed from Credential Manager.", ex);
+        }
         cache.DeleteAsync(playlistId).Forget(log, "catalog cache delete");
         library.Update(s => Core.Library.LibraryOperations.RemoveAll(s, playlistId));
         library.Flush();
@@ -146,6 +164,22 @@ public sealed partial class PlaylistController(
             settings.Update(s => s with { ActivePlaylist = Active?.Id });
             await LoadActiveAsync().ConfigureAwait(true);
         }
+    }
+
+    /// <summary>Stops any download still running (app exit).</summary>
+    public void Dispose()
+    {
+        _refreshCancel.Cancel();
+        _refreshCancel.Dispose();
+    }
+
+    /// <summary>Moves to a new load generation and cancels the download of the previous one (spec §4.1).</summary>
+    private int NextGeneration()
+    {
+        _refreshCancel.Cancel();
+        _refreshCancel.Dispose();
+        _refreshCancel = new CancellationTokenSource();
+        return ++_generation;
     }
 
     private Playlist? FirstPlaylist() => Playlists.Count > 0 ? Playlists[0] : null;
@@ -168,7 +202,7 @@ public sealed partial class PlaylistController(
 
     private async Task LoadActiveAsync()
     {
-        var generation = ++_generation;
+        var generation = NextGeneration();
         IsRefreshing = false;
         Index = null;
         Account = null;
@@ -226,7 +260,7 @@ public sealed partial class PlaylistController(
 
         try
         {
-            var catalog = await source.FetchAsync(playlist).ConfigureAwait(true);
+            var catalog = await source.FetchAsync(playlist, _refreshCancel.Token).ConfigureAwait(true);
             if (generation != _generation)
             {
                 return;
@@ -242,13 +276,17 @@ public sealed partial class PlaylistController(
             Index = index;
             Status = LoadStatus.Ready;
         }
-        catch (RetuneException ex) when (generation == _generation)
+        catch (RetuneException ex)
         {
-            // A cached catalog stays visible when a background refresh fails.
-            if (Index is null)
+            // A superseded refresh fails quietly; a current one keeps a cached catalog visible.
+            if (generation == _generation && Index is null)
             {
                 Status = LoadStatus.Failed(ex.Message);
             }
+        }
+        catch (OperationCanceledException) when (generation != _generation)
+        {
+            // Cancelled because the playlist changed: nothing to report.
         }
         finally
         {

@@ -1,3 +1,4 @@
+using Retune.Core.Diagnostics;
 using Retune.Core.Library;
 using Retune.Core.Models;
 using Retune.Core.Parental;
@@ -15,18 +16,20 @@ public sealed class LibraryService : IDisposable
 {
     public static readonly TimeSpan SaveDelay = TimeSpan.FromSeconds(1);
 
+    private readonly IAppLog _log;
     private readonly DebouncedWriter<LibraryState> _writer;
     private readonly HashSet<string> _unlocked = new(StringComparer.Ordinal);
     private readonly ProgressThrottle _throttle;
     private readonly TimeProvider _time;
 
-    public LibraryService(ILibraryStore store, TimeProvider time)
+    public LibraryService(ILibraryStore store, TimeProvider time, IAppLog? log = null)
     {
+        _log = log ?? NullAppLog.Instance;
         ArgumentNullException.ThrowIfNull(store);
         _time = time;
         _throttle = new ProgressThrottle(time);
         Pins = new PinAttemptLimiter(time);
-        _writer = new DebouncedWriter<LibraryState>(store.Save, SaveDelay, time);
+        _writer = new DebouncedWriter<LibraryState>(store.Save, SaveDelay, time, ex => _log.Warning("library save", "Couldn't save; will retry.", ex));
 
         var (state, changed) = store.Load().SanitizeStreamUrls();
         State = state;

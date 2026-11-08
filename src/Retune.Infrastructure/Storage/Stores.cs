@@ -163,7 +163,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             writer.WriteString("layout.tileSize", settings.TileSize.ToString());
             writer.WriteNumber("ui.zoom", ZoomLevel.Clamped(settings.Zoom));
             writer.WriteBoolean("ui.sidebarCollapsed", settings.SidebarCollapsed);
-            if (settings.Window is { } w)
+            if (settings.Window is { } w && double.IsFinite(w.Left) && double.IsFinite(w.Top) && double.IsFinite(w.Width) && double.IsFinite(w.Height))
             {
                 writer.WriteStartObject("ui.window");
                 writer.WriteNumber("left", w.Left);

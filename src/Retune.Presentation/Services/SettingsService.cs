@@ -1,3 +1,4 @@
+using Retune.Core.Diagnostics;
 using Retune.Core.Models;
 using Retune.Core.Persistence;
 
@@ -12,13 +13,15 @@ public sealed class SettingsService : IDisposable
 {
     public static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
 
+    private readonly IAppLog _log;
     private readonly DebouncedWriter<AppSettings> _writer;
 
-    public SettingsService(ISettingsStore store, TimeProvider time)
+    public SettingsService(ISettingsStore store, TimeProvider time, IAppLog? log = null)
     {
+        _log = log ?? NullAppLog.Instance;
         ArgumentNullException.ThrowIfNull(store);
         Current = store.Load();
-        _writer = new DebouncedWriter<AppSettings>(store.Save, SaveDelay, time);
+        _writer = new DebouncedWriter<AppSettings>(store.Save, SaveDelay, time, ex => _log.Warning("settings save", "Couldn't save; will retry.", ex));
     }
 
     /// <summary>Raised after every change, with the new settings already in <see cref="Current"/>.</summary>

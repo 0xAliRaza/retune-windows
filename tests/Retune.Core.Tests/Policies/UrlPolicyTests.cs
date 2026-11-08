@@ -142,4 +142,14 @@ public sealed class LocatorTests
     {
         Assert.Null(Locators.Resolve(locator, Urls));
     }
+
+    [Theory]
+    [InlineData("http://tv.example:8080", "http://TV.example:8080/", true)]
+    [InlineData("http://tv.example", "http://tv.example:80", true)]
+    [InlineData("http://tv.example:8080", "http://tv.example:8081", false)]
+    [InlineData("http://tv.example", "https://tv.example", false)]
+    [InlineData("http://tv.example", "http://evil.example", false)]
+    [InlineData("http://tv.example", "not a url", false)]
+    [InlineData(null, "http://tv.example", false)]
+    public void SameOrigin(string? a, string? b, bool expected) => Assert.Equal(expected, Retune.Core.Policies.UrlPolicy.SameOrigin(a, b));
 }

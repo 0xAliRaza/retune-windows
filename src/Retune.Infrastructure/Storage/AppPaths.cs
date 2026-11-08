@@ -14,6 +14,9 @@ public sealed record AppPaths(string DataDirectory, string CacheDirectory)
     /// <summary>Where saved passwords go in Credential Manager. Isolated (dev and test) runs never touch the real ones.</summary>
     public string SecretPrefix { get; init; } = CredentialPrefix;
 
+    /// <summary>A dev or test run under <c>RETUNE_DATA_DIR</c>: nothing it does may touch the user's real Retune.</summary>
+    public bool IsIsolated => SecretPrefix == IsolatedCredentialPrefix;
+
     public string CatalogDirectory => Path.Combine(DataDirectory, "Catalogs");
 
     public string ArtworkDirectory => Path.Combine(CacheDirectory, "Artwork");
@@ -23,6 +26,9 @@ public sealed record AppPaths(string DataDirectory, string CacheDirectory)
 
     /// <summary>%APPDATA%\Retune and %LOCALAPPDATA%\Retune\Cache, unless <c>RETUNE_DATA_DIR</c> is set.</summary>
     public static AppPaths ForCurrentUser() => From(Environment.GetEnvironmentVariable);
+
+    /// <summary>The real folders, ignoring <c>RETUNE_DATA_DIR</c> (the uninstaller's purge must clean what the user actually has).</summary>
+    public static AppPaths ForRealUser() => From(_ => null);
 
     internal static AppPaths From(Func<string, string?> environment)
     {

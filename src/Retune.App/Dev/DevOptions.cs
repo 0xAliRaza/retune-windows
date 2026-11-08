@@ -16,9 +16,15 @@ namespace Retune.App.Dev;
 /// <param name="PerfReport">With <c>--demo</c>: run <see cref="PerfProbe"/> and write its report here.</param>
 public sealed record DevOptions(bool NoActivate, (int X, int Y, int Width, int Height)? WindowBounds, string? RenderFolder, string? DemoProvider, bool Mute = false, bool AutoPlay = false, string? PerfReport = null, string? TourFolder = null)
 {
-    public static DevOptions Parse(IReadOnlyList<string> args)
+    /// <summary>Dev flags only count in isolated runs (<c>RETUNE_DATA_DIR</c>), so they can't touch a user's real data.</summary>
+    public static DevOptions Parse(IReadOnlyList<string> args, bool isolated)
     {
         ArgumentNullException.ThrowIfNull(args);
+        if (!isolated)
+        {
+            return new DevOptions(false, null, null, null);
+        }
+
         string? ValueAfter(string flag)
         {
             for (var i = 0; i < args.Count - 1; i++)
@@ -32,8 +38,9 @@ public sealed record DevOptions(bool NoActivate, (int X, int Y, int Width, int H
             return null;
         }
 
-        var bounds = ValueAfter("--window")?.Split(',') is { Length: 4 } p
-            ? (int.Parse(p[0], CultureInfo.InvariantCulture), int.Parse(p[1], CultureInfo.InvariantCulture), int.Parse(p[2], CultureInfo.InvariantCulture), int.Parse(p[3], CultureInfo.InvariantCulture))
+        static bool Int(string s, out int value) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+        var bounds = ValueAfter("--window")?.Split(',') is { Length: 4 } p && Int(p[0], out var x) && Int(p[1], out var y) && Int(p[2], out var w) && Int(p[3], out var h)
+            ? (x, y, w, h)
             : ((int, int, int, int)?)null;
         return new DevOptions(args.Contains("--no-activate"), bounds, ValueAfter("--render"), ValueAfter("--demo"), args.Contains("--mute"), args.Contains("--autoplay"), ValueAfter("--perf"), ValueAfter("--tour"));
     }

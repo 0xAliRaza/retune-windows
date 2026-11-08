@@ -51,9 +51,6 @@ internal static partial class NativeMethods
     [LibraryImport("kernel32.dll")]
     internal static partial uint SetThreadExecutionState(uint flags);
 
-    [LibraryImport("user32.dll", EntryPoint = "FindWindowW", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial nint FindWindow(string? className, string windowName);
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ShowWindow(nint hwnd, int command);
@@ -63,16 +60,37 @@ internal static partial class NativeMethods
     internal static partial bool SetForegroundWindow(nint hwnd);
 
     /// <summary>Restores and focuses the already-running Retune window.</summary>
-    internal static void ActivateExistingWindow(string title)
+    /// <summary>
+    /// Brings the already running Retune (same user session) forward: found by its process, not its title (an Explorer
+    /// window on Pictures\Retune has that title too), and restored only when minimised, so a maximised window stays so.
+    /// </summary>
+    internal static void ActivateExistingWindow()
     {
         const int SwRestore = 9;
-        var hwnd = FindWindow(null, title);
-        if (hwnd != 0)
+        using var current = System.Diagnostics.Process.GetCurrentProcess();
+        foreach (var other in System.Diagnostics.Process.GetProcessesByName(current.ProcessName))
         {
-            ShowWindow(hwnd, SwRestore);
-            SetForegroundWindow(hwnd);
+            using (other)
+            {
+                if (other.Id == current.Id || other.SessionId != current.SessionId || other.MainWindowHandle == 0)
+                {
+                    continue;
+                }
+
+                if (IsIconic(other.MainWindowHandle))
+                {
+                    ShowWindow(other.MainWindowHandle, SwRestore);
+                }
+
+                SetForegroundWindow(other.MainWindowHandle);
+                return;
+            }
         }
     }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsIconic(nint hwnd);
 
     [LibraryImport("user32.dll")]
     internal static partial nint MonitorFromWindow(nint hwnd, uint flags);
@@ -106,6 +124,62 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetCursorPos(out CursorPoint point);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeWindowPlacement
+    {
+        public int Length;
+        public int Flags;
+        public int ShowCmd;
+        public int MinX;
+        public int MinY;
+        public int MaxX;
+        public int MaxY;
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    private const int SwShowNormal = 1;
+    private const int SwShowMinimized = 2;
+    private const int SwShowMaximized = 3;
+    private const int RestoreToMaximized = 2;
+
+    /// <summary>The window's normal (restored) bounds in physical workspace pixels and whether it is maximised.</summary>
+    internal static Retune.Core.Models.WindowPlacement? GetPlacement(nint hwnd)
+    {
+        var wp = new NativeWindowPlacement { Length = Marshal.SizeOf<NativeWindowPlacement>() };
+        if (hwnd == 0 || !GetWindowPlacement(hwnd, ref wp))
+        {
+            return null;
+        }
+
+        var maximized = wp.ShowCmd == SwShowMaximized || (wp.ShowCmd == SwShowMinimized && (wp.Flags & RestoreToMaximized) != 0);
+        return new Retune.Core.Models.WindowPlacement(wp.Left, wp.Top, wp.Right - wp.Left, wp.Bottom - wp.Top, maximized);
+    }
+
+    /// <summary>Applies saved bounds; Windows moves the window onto a connected screen if that spot is gone.</summary>
+    internal static void SetPlacement(nint hwnd, Retune.Core.Models.WindowPlacement placement)
+    {
+        var wp = new NativeWindowPlacement
+        {
+            Length = Marshal.SizeOf<NativeWindowPlacement>(),
+            ShowCmd = placement.Maximized ? SwShowMaximized : SwShowNormal,
+            Left = (int)Math.Round(placement.Left),
+            Top = (int)Math.Round(placement.Top),
+            Right = (int)Math.Round(placement.Left + placement.Width),
+            Bottom = (int)Math.Round(placement.Top + placement.Height),
+        };
+        _ = SetWindowPlacement(hwnd, ref wp);
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetWindowPlacement(nint hwnd, ref NativeWindowPlacement placement);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetWindowPlacement(nint hwnd, ref NativeWindowPlacement placement);
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
