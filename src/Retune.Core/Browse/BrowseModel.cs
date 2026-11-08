@@ -21,6 +21,21 @@ public sealed record ItemsContent(IReadOnlyList<IBrowsable> Items) : BrowseConte
 
 public sealed record ContinueWatchingContent(IReadOnlyList<KeyedProgress> Entries) : BrowseContent;
 
+public enum HomeRowKind
+{
+    ContinueWatching,
+    RecentChannels,
+    FavoriteChannels,
+    FavoriteMovies,
+    FavoriteSeries,
+}
+
+/// <summary>
+/// One row of the Home page. <paramref name="Entries"/> are <see cref="KeyedProgress"/> for Continue Watching and
+/// <see cref="IBrowsable"/> otherwise; <paramref name="Section"/> and <paramref name="Filter"/> open the full list.
+/// </summary>
+public sealed record HomeRowContent(HomeRowKind Kind, string Title, LibrarySection Section, CategoryFilter Filter, IReadOnlyList<object> Entries, int Total);
+
 /// <summary>A hidden category as listed in Settings (ids overlap across sections, so the section is kept).</summary>
 public sealed record HiddenCategory(LibrarySection Section, string Id, string Name);
 
@@ -175,6 +190,38 @@ public static class BrowseModel
             LibrarySection.Movies => context.Index.Movies.Select(query),
             _ => context.Index.Series.Select(query),
         });
+    }
+
+    /// <summary>
+    /// The Home page: Continue Watching (films and episodes, most recent first), recently watched channels, then
+    /// favourite channels, films and series. Built from the same rules as the sections, so locked and hidden
+    /// categories never appear. Empty rows are left out; each row shows at most <paramref name="maxPerRow"/>.
+    /// </summary>
+    public static IReadOnlyList<HomeRowContent> HomeRows(BrowseContext context, int maxPerRow)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxPerRow, 1);
+        var rows = new List<HomeRowContent>();
+        void Add(HomeRowKind kind, string title, LibrarySection section, CategoryFilter filter, IReadOnlyList<object> entries)
+        {
+            if (entries.Count > 0)
+            {
+                rows.Add(new HomeRowContent(kind, title, section, filter, [.. entries.Take(maxPerRow)], entries.Count));
+            }
+        }
+
+        IReadOnlyList<object> Items(LibrarySection section, CategoryFilter filter) =>
+            Content(context, section, filter, null, BrowseSort.Provider) is ItemsContent items ? [.. items.Items] : [];
+
+        var resumable = ContinueWatching(context, LibrarySection.Movies).Concat(ContinueWatching(context, LibrarySection.Series))
+            .Select(e => e.Key).ToHashSet(StringComparer.Ordinal);
+        Add(HomeRowKind.ContinueWatching, "Continue Watching", LibrarySection.Movies, CategoryFilter.ContinueWatching,
+            [.. context.Library.ContinueWatching(context.PlaylistId).Where(e => resumable.Contains(e.Key))]);
+        Add(HomeRowKind.RecentChannels, "Recently Watched Channels", LibrarySection.Live, CategoryFilter.Recent, Items(LibrarySection.Live, CategoryFilter.Recent));
+        Add(HomeRowKind.FavoriteChannels, "Favorite Channels", LibrarySection.Live, CategoryFilter.Favorites, Items(LibrarySection.Live, CategoryFilter.Favorites));
+        Add(HomeRowKind.FavoriteMovies, "Favorite Movies", LibrarySection.Movies, CategoryFilter.Favorites, Items(LibrarySection.Movies, CategoryFilter.Favorites));
+        Add(HomeRowKind.FavoriteSeries, "Favorite Series", LibrarySection.Series, CategoryFilter.Favorites, Items(LibrarySection.Series, CategoryFilter.Favorites));
+        return rows;
     }
 
     private static bool IsExcluded(string? categoryId, IReadOnlySet<string> excluded) =>

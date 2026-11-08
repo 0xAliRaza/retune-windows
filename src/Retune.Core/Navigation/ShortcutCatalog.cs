@@ -38,7 +38,7 @@ public static class ShortcutCatalog
         new(["Click"], "Play / pause"),
         new(["Double-click"], "Full screen"),
         new(["Wheel"], "Channel up / down (live), volume (films)"),
-        new(["Shift+Wheel"], "Volume"),
+        new(["Shift+Wheel"], "Volume (or the wheel over the speaker)"),
         new(["Middle-click"], "Mute"),
         new(["Right-click"], "Player menu"),
         new(["Back button"], "Leave the player"),
@@ -46,6 +46,7 @@ public static class ShortcutCatalog
 
     public static ShortcutGroup App { get; } = new("App",
     [
+        new(["Alt+Home"], "Home"),
         new(["Ctrl+1", "Ctrl+2", "Ctrl+3"], "Live TV / Movies / Series"),
         new(["Ctrl+Shift+1", "Ctrl+Shift+2", "Ctrl+Shift+3"], "Grid / List / Compact"),
         new(["Ctrl+B"], "Show / hide the sidebar"),

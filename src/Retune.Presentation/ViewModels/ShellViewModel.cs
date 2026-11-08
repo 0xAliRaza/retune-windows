@@ -107,6 +107,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public bool IsSettingsOpen => SettingsPage is not null;
 
+    /// <summary>The Home page: the landing page, in place of the categories and content.</summary>
+    public HomeViewModel Home { get; } = new();
+
+    [ObservableProperty]
+    public partial bool IsHomeOpen { get; private set; } = true;
+
+    public NavState HomeNav => new(IsHomeOpen);
+
     public IReadOnlyList<BrowseSort> SortOptions => Section == LibrarySection.Live
         ? [BrowseSort.Provider, BrowseSort.Title]
         : [BrowseSort.Provider, BrowseSort.Title, BrowseSort.RecentlyAdded, BrowseSort.Rating];
@@ -140,6 +148,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
 
         CloseSettings();
+        IsHomeOpen = false;
         UnlockError = null;
         Section = section;
         _details.Clear();
@@ -159,6 +168,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         ArgumentNullException.ThrowIfNull(row);
         CloseSettings();
+        IsHomeOpen = false;
         UnlockError = null;
         Filter = row.Filter;
         _details.Clear();
@@ -208,8 +218,48 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Play(BrowseItemViewModel item)
     {
         ArgumentNullException.ThrowIfNull(item);
+        if (IsHomeOpen && Home.Rows.FirstOrDefault(r => r.Items.Contains(item)) is { } row)
+        {
+            PlayFrom(row.Content.Entries, item, row.Title);
+        }
+        else
+        {
+            PlayFrom(Content.Entries, item, Content.Title);
+        }
+    }
+
+    // ---- home ----------------------------------------------------------------------------------
+
+    /// <summary>The Home row in the sidebar (Alt+Home).</summary>
+    [RelayCommand]
+    public void OpenHome()
+    {
+        CloseSettings();
+        _details.Clear();
+        Detail = null;
+        IsHomeOpen = true;
+        Home.Show(Context, _player.PlayingItemId);
+    }
+
+    /// <summary>"See all": the row's full list in its section.</summary>
+    public void SeeAll(HomeRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        SelectSection(row.Content.Section);
+        Filter = row.Content.Filter;
+        Recompute();
+    }
+
+    partial void OnIsHomeOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HomeNav));
+        Sections = BuildSections();
+    }
+
+    private void PlayFrom(IReadOnlyList<object> entries, BrowseItemViewModel item, string title)
+    {
+        ArgumentNullException.ThrowIfNull(item);
         var items = PlayableFactory();
-        var entries = Content.Entries;
         var index = IndexOf(entries, item);
         if (index < 0 || items is null)
         {
@@ -217,11 +267,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
 
         Lineup? lineup = item.Entry is not null
-            ? Lineup.Build(entries.OfType<KeyedProgress>().ToList(), index, e => items.Restore(e.Progress.Item, id => Playlists.Index?.Movies.Item(id)), "Continue Watching")
+            ? Lineup.Build(entries.OfType<KeyedProgress>().ToList(), index, e => items.Restore(e.Progress.Item, id => Playlists.Index?.Movies.Item(id)), title)
             : item.Source switch
             {
-                Channel => Lineup.Build(entries.OfType<Channel>().ToList(), index, items.Channel, Content.Title),
-                Movie => Lineup.Build(entries.OfType<Movie>().ToList(), index, items.Movie, Content.Title),
+                Channel => Lineup.Build(entries.OfType<Channel>().ToList(), index, items.Channel, title),
+                Movie => Lineup.Build(entries.OfType<Movie>().ToList(), index, items.Movie, title),
                 _ => null,
             };
         if (lineup is not null)
@@ -464,6 +514,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (IsHomeOpen)
+        {
+            Home.Show(context, _player.PlayingItemId);
+        }
+
         var content = BrowseModel.Content(context, Section, Filter, _appliedSearch, Sort);
         Content.Show(context.PlaylistId, BrowseModel.Title(context, Section, Filter, _appliedSearch), content, context.Library, _player.PlayingItemId, EmptyText());
     }
@@ -544,12 +599,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         var catalog = Playlists.Index?.Catalog;
         var sections = new List<SectionItem>
         {
-            new(LibrarySection.Live, LibrarySection.Live.Title(), catalog?.Channels.Count ?? 0, Section == LibrarySection.Live),
-            new(LibrarySection.Movies, LibrarySection.Movies.Title(), catalog?.Movies.Count ?? 0, Section == LibrarySection.Movies),
+            new(LibrarySection.Live, LibrarySection.Live.Title(), catalog?.Channels.Count ?? 0, !IsHomeOpen && Section == LibrarySection.Live),
+            new(LibrarySection.Movies, LibrarySection.Movies.Title(), catalog?.Movies.Count ?? 0, !IsHomeOpen && Section == LibrarySection.Movies),
         };
         if (Playlists.Active?.SupportsSeries != false)
         {
-            sections.Add(new(LibrarySection.Series, LibrarySection.Series.Title(), catalog?.Series.Count ?? 0, Section == LibrarySection.Series));
+            sections.Add(new(LibrarySection.Series, LibrarySection.Series.Title(), catalog?.Series.Count ?? 0, !IsHomeOpen && Section == LibrarySection.Series));
         }
 
         return sections;
@@ -664,6 +719,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             Content.Refresh(_library.State, _player.PlayingItemId);
             OnPropertyChanged(nameof(HasUnlocks));
+            if (IsHomeOpen)
+            {
+                Home.Show(Context, _player.PlayingItemId);
+            }
         }
 
         switch (Detail)
@@ -683,7 +742,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         (s.HiddenCategories.Count, s.LockedCategories.Count, s.PinnedCategories.Count, _library.UnlockedCategories.Count,
          s.Favorites.Count, s.Progress.Count, s.RecentChannels.Count);
 
-    private void OnPlayingChanged(object? sender, EventArgs e) => Content.Refresh(_library.State, _player.PlayingItemId);
+    private void OnPlayingChanged(object? sender, EventArgs e)
+    {
+        Content.Refresh(_library.State, _player.PlayingItemId);
+        if (IsHomeOpen)
+        {
+            Home.Show(Context, _player.PlayingItemId);
+        }
+    }
 
     private static int IndexOf(IReadOnlyList<object> entries, BrowseItemViewModel item)
     {

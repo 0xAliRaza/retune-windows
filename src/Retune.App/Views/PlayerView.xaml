@@ -150,7 +150,7 @@
             </Button>
             <Button Style="{StaticResource PlayerButton}" Command="{Binding SeekForwardCommand}" ToolTip="Forward 10 seconds (→)" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="SkipForward1024" FontSize="20" /></Button>
             <Button Style="{StaticResource PlayerButton}" Command="{Binding NextCommand}" ToolTip="Next (↓)" IsEnabled="{Binding State.CanGoNext}"><ui:SymbolIcon Symbol="Next24" Filled="True" FontSize="18" /></Button>
-            <Button Style="{StaticResource PlayerButton}" Margin="10,0,0,0" Command="{Binding ToggleMuteCommand}" ToolTip="Mute (M)">
+            <Button x:Name="MuteButton" Style="{StaticResource PlayerButton}" Margin="10,0,0,0" Command="{Binding ToggleMuteCommand}" ToolTip="Mute (M) · scroll for volume">
               <ui:SymbolIcon x:Name="VolumeIcon" Symbol="Speaker224" FontSize="20" />
             </Button>
             <Slider x:Name="VolumeSlider" AutomationProperties.Name="Volume" Width="100" Margin="4,0" VerticalAlignment="Center" Minimum="0" Maximum="100" Focusable="False" IsMoveToPointEnabled="True" ValueChanged="OnVolumeSlider" />

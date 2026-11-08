@@ -117,13 +117,22 @@ public partial class PlayerView : UserControl
     /// <summary>Mouse wheel over the video: channels on live TV, otherwise volume (Ctrl + wheel is the app zoom).</summary>
     private void OnSurfaceWheel(object sender, MouseWheelEventArgs e)
     {
-        if (_player is null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || !IsOverVideo(e.OriginalSource as DependencyObject))
+        if (_player is null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             return;
         }
 
-        Wheel(e.Delta);
-        e.Handled = true;
+        var hit = e.OriginalSource as DependencyObject;
+        if (IsOverVolume(hit))
+        {
+            _player.Wheel(e.Delta > 0, volume: true);
+            e.Handled = true;
+        }
+        else if (IsOverVideo(hit))
+        {
+            Wheel(e.Delta);
+            e.Handled = true;
+        }
     }
 
     /// <summary>
@@ -144,12 +153,19 @@ public partial class PlayerView : UserControl
         {
             scroller.ScrollToVerticalOffset(scroller.VerticalOffset - (delta / (double)Mouse.MouseWheelDeltaForOneLine * ListWheelPixels));
         }
+        else if (IsOverVolume(hit))
+        {
+            _player.Wheel(delta > 0, volume: true);
+        }
         else if (IsOverVideo(hit))
         {
             Wheel(delta);
         }
     }
     /// <summary>The pointer is on the picture (or the tuning card, spinner or messages over it), not on a panel or bar.</summary>
+    /// <summary>The speaker button or volume slider: the wheel there is always the volume.</summary>
+    private bool IsOverVolume(DependencyObject? hit) => IsInside(hit, MuteButton) || IsInside(hit, VolumeSlider);
+
     private bool IsOverVideo(DependencyObject? hit) =>
         hit is not null && IsInside(hit, Surface)
         && !new DependencyObject[] { TopBar, BottomBar, ListPanel, StatsPanel, UpNextPanel, ShortcutsPanel, ErrorPanel }.Any(panel => IsInside(hit, panel));

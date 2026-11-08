@@ -172,4 +172,54 @@ public sealed class BrowseModelTests
         Assert.Equal("Results for “bbc”", BrowseModel.Title(context, LibrarySection.Live, CategoryFilter.Favorites, "  bbc "));
         Assert.Equal("Recently Watched", BrowseModel.Title(context, LibrarySection.Live, CategoryFilter.Recent, ""));
     }
+    [Fact]
+    public void Home_is_empty_for_a_new_library()
+    {
+        Assert.Empty(BrowseModel.HomeRows(Context(LibraryState.Empty), 20));
+    }
+
+    [Fact]
+    public void Home_rows_come_in_order_without_locked_or_hidden_items()
+    {
+        string Key(ContentKind kind, string id) => LibraryKeys.Content(P, kind, id);
+        var batman = new PlaybackItem("m1", ContentKind.Movie, "Batman", null, "http://h/m1.mp4");
+        var gem = new PlaybackItem("m3", ContentKind.Movie, "Hidden Gem", null, "http://h/m3.mp4");
+        var library = LibraryState.Empty
+            .SetLocked(Cat(LibrarySection.Live, "adult"), true)
+            .ToggleHidden(Cat(LibrarySection.Movies, "secret"))
+            .RecordProgress(Key(ContentKind.Movie, "m1"), batman, 600, 6000, T0)
+            .RecordProgress(Key(ContentKind.Movie, "m3"), gem, 600, 6000, T0.AddMinutes(1))
+            .RecordRecentChannel(Key(ContentKind.Live, "c2"))
+            .RecordRecentChannel(Key(ContentKind.Live, "c3"))
+            .ToggleFavorite(Key(ContentKind.Live, "c1"))
+            .ToggleFavorite(Key(ContentKind.Live, "c3"))
+            .ToggleFavorite(Key(ContentKind.Movie, "m2"))
+            .ToggleFavorite(Key(ContentKind.Series, "s1"));
+
+        var rows = BrowseModel.HomeRows(Context(library), 20);
+
+        Assert.Equal(
+            [HomeRowKind.ContinueWatching, HomeRowKind.RecentChannels, HomeRowKind.FavoriteChannels, HomeRowKind.FavoriteMovies, HomeRowKind.FavoriteSeries],
+            rows.Select(r => r.Kind));
+        Assert.Equal(["m1"], rows[0].Entries.Cast<KeyedProgress>().Select(e => e.Progress.Item.Id));
+        Assert.Equal(["c2"], rows[1].Entries.Cast<IBrowsable>().Select(i => i.Id));
+        Assert.Equal(["c1"], rows[2].Entries.Cast<IBrowsable>().Select(i => i.Id));
+        Assert.Equal(["m2"], rows[3].Entries.Cast<IBrowsable>().Select(i => i.Id));
+        Assert.Equal(["s1"], rows[4].Entries.Cast<IBrowsable>().Select(i => i.Id));
+        Assert.Equal((LibrarySection.Live, CategoryFilter.Favorites), (rows[2].Section, rows[2].Filter));
+    }
+
+    [Fact]
+    public void Home_rows_are_capped_but_keep_the_total()
+    {
+        var library = LibraryState.Empty;
+        foreach (var id in new[] { "c1", "c2", "c4" })
+        {
+            library = library.ToggleFavorite(LibraryKeys.Content(P, ContentKind.Live, id));
+        }
+
+        var row = Assert.Single(BrowseModel.HomeRows(Context(library), 2));
+        Assert.Equal(2, row.Entries.Count);
+        Assert.Equal(3, row.Total);
+    }
 }

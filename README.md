@@ -11,6 +11,8 @@ playback by [mpv](https://mpv.io). Free and open source (GPL-3.0-or-later). No a
 
 ## Features
 
+- **Home**: the landing page with Continue Watching, recently watched channels and your favourite channels, films and
+  series, one click from playing (Alt+Home).
 - **Xtream Codes and M3U** playlists (URL or local file), several playlists side by side, with the provider's
   account status and expiry in the sidebar.
 - **Live TV, Movies and Series** with categories, a category filter, accent-insensitive search, sorting, and
@@ -88,10 +90,10 @@ winget install JRSoftware.InnoSetup --scope user   # once; per-user, no admin ri
 
 | Where | Keys |
 | --- | --- |
-| Anywhere | **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
+| Anywhere | **Alt+Home** Home · **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
 | Browsing | **Tab** next column · **Enter** open or play · **Alt+←**, **Backspace** or the mouse's Back button go back · **Ctrl+Shift+1/2/3** grid / list / compact |
 | Player | **Space** play/pause · **←/→** 10 s (**Shift** 1 min) · **↑/↓** previous/next · **0–9** channel number · **Backspace** last channel · **L** channel list · **M** mute · **−/+** volume · **C** subtitles · **[ ] \\** speed · **I** stats · **S** screenshot · **F** full screen · **Esc** close |
-| Player, mouse | **Click** play/pause · **Double-click** full screen · **Wheel** channels (live) or volume (films) · **Shift + wheel** volume · **Middle-click** mute · **Right-click** player menu · **Back button** leave the player |
+| Player, mouse | **Click** play/pause · **Double-click** full screen · **Wheel** channels (live) or volume (films) · **Shift + wheel**, or the wheel over the speaker or volume slider, volume · **Middle-click** mute · **Right-click** player menu · **Back button** leave the player |
 
 Settings (the gear at the bottom of the sidebar) cover zoom, the live stream format (Automatic shows what it picks for
 your playlist, or choose MPEG-TS or HLS), autoplay of the next episode, the parental PIN, hidden categories (collapsed,
@@ -126,6 +128,7 @@ to the macOS version.
 - Mouse controls in the player: wheel zaps channels on live TV and sets the volume on films (Shift + wheel is always
   volume), middle-click mutes, right-click player menu (tracks, speed, list, stats, screenshot, shortcuts), mouse Back
   button leaves the player.
+- A Home page (Continue Watching, recently watched channels, favourite channels, films and series) as the landing page.
 - App-wide zoom (Ctrl+Plus/Minus/0, Ctrl + wheel, Settings › Appearance).
 - Collapsible sidebar (Ctrl+B) to an icon rail.
 - Window size, position and maximised state are remembered.
@@ -146,6 +149,24 @@ to the macOS version.
 - Ctrl+1–3 don't change the section while the player is open (macOS changes it underneath).
 - Layout shortcuts are Ctrl+Shift+1–3; Back is Alt+←, Backspace or the mouse's Back button.
 - The favourite icon is a star everywhere (macOS mixes heart and star).
+## Roadmap
+
+Planned, roughly in order. Nothing here is promised by a date.
+
+1. **Seeking on every provider**: some servers don't allow jumping ahead in a stream (no HTTP range support).
+   Retune now says so instead of doing nothing; next is making forward jumps work there too.
+2. **Code-signed releases**, so Windows SmartScreen stops warning on download and install. This needs a code-signing
+   certificate; until then builds are unsigned (see [Install](#install)).
+3. **A full TV guide**: a schedule grid for live channels from the provider's EPG, beyond today's now/next line.
+4. **Catch-up (timeshift)** on live channels whose provider offers it: watch what aired earlier.
+5. **Picture-in-picture**: a small always-on-top player while you browse or work.
+6. **In-app updates** from GitHub Releases, verified against published checksums.
+7. **A smaller download**: about 50 MB of the package is a Windows component used only for the media keys and
+   flyout; projecting just the part Retune uses removes most of it.
+8. **Smoother grid scrolling at very large sizes** (60,000+ posters): recycle tiles instead of rebuilding rows.
+9. **1.0 release**: a 4-hour playback soak test (a 1-hour one passes today), a final review, version 1.0.
+10. **Linux**: a version for Ubuntu and other distributions, sharing the .NET core and view models with an Avalonia
+    interface, libmpv in an OpenGL view, the desktop keyring for passwords and MPRIS for media keys.
 ## How it's built
 
 C# on .NET 10 with WPF and [WPF-UI](https://github.com/lepoco/wpfui) (Fluent design, Mica), CommunityToolkit.Mvvm,
@@ -170,7 +191,7 @@ window.
 
 ## Quality
 
-- **535 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
+- **539 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
   HTTP limits and timeouts against a local server, view models against an in-process fake provider, and real mpv
   playback of generated media. CI runs them on every push.
 - **Zero analyzer warnings**: `latest-recommended` analysis with warnings as errors.

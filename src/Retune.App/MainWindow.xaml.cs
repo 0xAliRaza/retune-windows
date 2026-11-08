@@ -227,7 +227,15 @@ public partial class MainWindow : FluentWindow
             case Key.D1 or Key.NumPad1 when ctrl && !playing: Shell.SelectSection(LibrarySection.Live); break;
             case Key.D2 or Key.NumPad2 when ctrl && !playing: Shell.SelectSection(LibrarySection.Movies); break;
             case Key.D3 or Key.NumPad3 when ctrl && !playing: Shell.SelectSection(LibrarySection.Series); break;
-            case Key.F when ctrl && !playing: ShellPane.FocusSearch(); break;
+            case Key.F when ctrl && !playing:
+                if (Shell.IsHomeOpen)
+                {
+                    Shell.SelectSection(Shell.Section); // the search box lives on the section page
+                }
+
+                ShellPane.FocusSearch();
+                break;
+            case Key.Home when alt && !playing: Shell.OpenHome(); break;
             case Key.R when ctrl:
             case Key.F5:
                 _ = Shell.RefreshAsync();

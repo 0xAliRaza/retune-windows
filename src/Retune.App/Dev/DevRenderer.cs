@@ -33,6 +33,11 @@ internal static class DevRenderer
         try
         {
             await app.Playlists.AddAsync(playlist, "demo").ConfigureAwait(true);
+            DemoHistory.Seed(app, playlist.Id);
+            app.Shell.OpenHome();
+            await Snap(shell, Path.Combine(folder, "1-home.png"), settle: 3500).ConfigureAwait(true);
+
+            app.Shell.SelectSection(LibrarySection.Live);
             await Snap(shell, Path.Combine(folder, "1-live-list.png"), settle: 2500).ConfigureAwait(true);
 
             app.Shell.SetLayout(LayoutMode.Grid);
