@@ -20,7 +20,15 @@ $Asset  = 'mpv-dev-x86_64-20261021-git-e471496c56.7z'
 $Sha256 = 'efc719eff3dc5954b4a5efc800632808bcec01cc9034940dd14e5eb7fe9ea633'
 # SHA-256 of libmpv-2.dll inside that archive: checked on every run and by tools/package.ps1 before shipping.
 $DllSha256 = '04e4d27dc385dc18ddd93fbe69c75e635b864f3c6ec53a9122df54c2f7842f4a'
-$Url    = "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/$Build/$Asset"
+# The same file two ways: github.com's download link, then the API's asset endpoint (separate front ends, so one
+# often answers while the other times out). The hashes above decide whether either is accepted.
+$AssetId = '660943567'
+$Sources = @(
+    "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/$Build/$Asset",
+    "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/assets/$AssetId"
+)
+$AttemptsPerSource = 3
+$RetryDelaySeconds = 10
 
 $repoRoot  = Split-Path -Parent $PSScriptRoot
 $targetDir = Join-Path $repoRoot 'third_party\libmpv'
@@ -28,6 +36,26 @@ $dll       = Join-Path $targetDir 'libmpv-2.dll'
 $stamp     = Join-Path $targetDir 'BUILD'
 
 function Test-LibMpv { (Test-Path $dll) -and (Get-FileHash -Algorithm SHA256 -Path $dll).Hash.ToLowerInvariant() -eq $DllSha256 }
+
+function Save-Archive([string]$Destination) {
+    $headers = @{ Accept = 'application/octet-stream'; 'User-Agent' = 'retune-build' }
+    # CI passes its token so the API's per-IP limit for anonymous calls on shared runners doesn't apply.
+    if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
+    foreach ($source in $Sources) {
+        for ($attempt = 1; $attempt -le $AttemptsPerSource; $attempt++) {
+            try {
+                Invoke-WebRequest -Uri $source -Headers $headers -OutFile $Destination -UseBasicParsing
+                return
+            }
+            catch {
+                Write-Warning "Download from $([Uri]::new($source).Host) failed (attempt $attempt of $AttemptsPerSource): $($_.Exception.Message)"
+                if ($attempt -lt $AttemptsPerSource) { Start-Sleep -Seconds $RetryDelaySeconds }
+            }
+        }
+    }
+
+    throw "Couldn't download $Asset from any source."
+}
 
 if (-not $Force -and (Test-Path $stamp) -and ((Get-Content $stamp -Raw).Trim() -eq $Asset) -and (Test-LibMpv)) {
     Write-Host "libmpv $Build already present (hash verified)."
@@ -40,7 +68,7 @@ try {
     $archive = Join-Path $work $Asset
     Write-Host "Downloading $Asset ..."
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $Url -OutFile $archive -UseBasicParsing
+    Save-Archive $archive
 
     $actual = (Get-FileHash -Algorithm SHA256 -Path $archive).Hash.ToLowerInvariant()
     if ($actual -ne $Sha256) {
