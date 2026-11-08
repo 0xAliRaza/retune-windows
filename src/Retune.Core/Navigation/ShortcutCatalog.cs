@@ -37,7 +37,8 @@ public static class ShortcutCatalog
     [
         new(["Click"], "Play / pause"),
         new(["Double-click"], "Full screen"),
-        new(["Wheel"], "Volume"),
+        new(["Wheel"], "Channel up / down (live), volume (films)"),
+        new(["Shift+Wheel"], "Volume"),
         new(["Middle-click"], "Mute"),
         new(["Right-click"], "Player menu"),
         new(["Back button"], "Leave the player"),

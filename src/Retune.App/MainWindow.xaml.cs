@@ -239,7 +239,7 @@ public partial class MainWindow : FluentWindow
 
     private void ApplyZoom() => _zoom.ScaleX = _zoom.ScaleY = Shell.Zoom;
 
-    /// <summary>Ctrl + mouse wheel zooms, like a browser; in the player the plain wheel is the volume.</summary>
+    /// <summary>Ctrl + mouse wheel zooms, like a browser; in the player the plain wheel zaps channels or sets the volume.</summary>
     private void OnZoomWheel(object sender, MouseWheelEventArgs e)
     {
         if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _player?.IsPresented == true)

@@ -114,7 +114,7 @@ public partial class PlayerView : UserControl
         }
     }
 
-    /// <summary>Mouse wheel over the video changes the volume (Ctrl + wheel is the app zoom, handled by the window).</summary>
+    /// <summary>Mouse wheel over the video: channels on live TV, otherwise volume (Ctrl + wheel is the app zoom).</summary>
     private void OnSurfaceWheel(object sender, MouseWheelEventArgs e)
     {
         if (_player is null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -128,7 +128,7 @@ public partial class PlayerView : UserControl
 
     /// <summary>
     /// Wheel input that reached the main window instead of the overlay (it follows keyboard focus): scrolls the
-    /// channel list when the pointer is over it, otherwise changes the volume.
+    /// channel list when the pointer is over it, otherwise acts like the wheel over the video.
     /// </summary>
     public void WheelFromWindow(int delta, Point screenPoint)
     {
@@ -147,18 +147,7 @@ public partial class PlayerView : UserControl
         Wheel(delta);
     }
 
-    private void Wheel(int delta)
-    {
-        _player!.UserActivity();
-        if (delta > 0)
-        {
-            _player.VolumeUp();
-        }
-        else if (delta < 0)
-        {
-            _player.VolumeDown();
-        }
-    }
+    private void Wheel(int delta) => _player!.Wheel(delta > 0, volume: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
 
     /// <summary>Middle click mutes; the mouse's Back button leaves the player.</summary>
     private void OnSurfaceButton(object sender, MouseButtonEventArgs e)

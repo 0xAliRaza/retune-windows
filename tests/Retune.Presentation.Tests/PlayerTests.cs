@@ -144,6 +144,36 @@ public sealed class PlayerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_wheel_zaps_live_channels_and_shift_wheel_is_volume()
+    {
+        _player.Play(Channels());
+        FirstFrame();
+        _engine.SetVolume(50);
+
+        _player.Wheel(up: false, volume: false);
+        _player.Wheel(up: false, volume: false);
+        Assert.Equal(2, _session.State.Index);
+        Assert.Equal(50, _engine.Volume);
+
+        _player.Wheel(up: true, volume: true);
+        Assert.Equal(55, _engine.Volume);
+        Assert.Equal(2, _session.State.Index);
+    }
+
+    [Fact]
+    public void The_wheel_is_volume_for_films()
+    {
+        _player.Play(Movie());
+        FirstFrame(duration: 600);
+        _engine.SetVolume(50);
+
+        _player.Wheel(up: false, volume: false);
+
+        Assert.Equal(45, _engine.Volume);
+        Assert.Equal("Volume 45%", _player.FlashText);
+    }
+
+    [Fact]
     public void Opening_the_player_never_unmutes()
     {
         var engine = new FakeEngine();

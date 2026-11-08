@@ -339,6 +339,23 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     [RelayCommand]
     public void SetSpeed(double speed) => ChangeSpeed(speed);
 
+    /// <summary>
+    /// One mouse-wheel notch. Live TV zaps like ↑/↓ (debounced, so a fast scroll lands on one channel); films and
+    /// episodes, or <paramref name="volume"/> (Shift held), change the volume, so a stray scroll never jumps episodes.
+    /// </summary>
+    public void Wheel(bool up, bool volume)
+    {
+        UserActivity();
+        if (State.IsLive && !volume)
+        {
+            _session.Step(up ? -1 : +1);
+        }
+        else
+        {
+            ChangeVolume(VolumeLevel.Stepped(_engine.Volume, up), flash: true);
+        }
+    }
+
     [RelayCommand]
     public void VolumeUp() => ChangeVolume(VolumeLevel.Stepped(_engine.Volume, up: true), flash: true);
 
