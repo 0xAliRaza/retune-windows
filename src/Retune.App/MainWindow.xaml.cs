@@ -239,9 +239,17 @@ public partial class MainWindow : FluentWindow
 
     private void ApplyZoom() => _zoom.ScaleX = _zoom.ScaleY = Shell.Zoom;
 
-    /// <summary>Ctrl + mouse wheel zooms, like a browser.</summary>
+    /// <summary>Ctrl + mouse wheel zooms, like a browser; in the player the plain wheel is the volume.</summary>
     private void OnZoomWheel(object sender, MouseWheelEventArgs e)
     {
+        if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _player?.IsPresented == true)
+        {
+            // The wheel follows keyboard focus (this window), not the pointer over the player's overlay.
+            PlayerChrome.WheelFromWindow(e.Delta, PointToScreen(e.GetPosition(this)));
+            e.Handled = true;
+            return;
+        }
+
         if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && !_dialogs.IsOpen)
         {
             if (e.Delta > 0)

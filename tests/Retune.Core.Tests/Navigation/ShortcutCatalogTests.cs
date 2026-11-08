@@ -5,9 +5,10 @@ namespace Retune.Core.Tests.Navigation;
 public sealed class ShortcutCatalogTests
 {
     [Fact]
-    public void The_sheet_has_a_player_and_an_app_column()
+    public void The_sheet_has_player_app_and_mouse_groups_in_two_columns()
     {
-        Assert.Equal(["Player", "App"], ShortcutCatalog.All.Select(g => g.Title));
+        Assert.Equal(["Player", "App", "Mouse (player)"], ShortcutCatalog.All.Select(g => g.Title));
+        Assert.Equal(ShortcutCatalog.All, ShortcutCatalog.Columns.SelectMany(c => c));
         Assert.All(ShortcutCatalog.All, g => Assert.NotEmpty(g.Shortcuts));
     }
 

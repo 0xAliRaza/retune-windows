@@ -32,6 +32,17 @@ public static class ShortcutCatalog
         new(["Esc"], "Close panel / leave the player"),
     ]);
 
+    /// <summary>Mouse gestures on the video while playing.</summary>
+    public static ShortcutGroup Mouse { get; } = new("Mouse (player)",
+    [
+        new(["Click"], "Play / pause"),
+        new(["Double-click"], "Full screen"),
+        new(["Wheel"], "Volume"),
+        new(["Middle-click"], "Mute"),
+        new(["Right-click"], "Player menu"),
+        new(["Back button"], "Leave the player"),
+    ]);
+
     public static ShortcutGroup App { get; } = new("App",
     [
         new(["Ctrl+1", "Ctrl+2", "Ctrl+3"], "Live TV / Movies / Series"),
@@ -49,5 +60,8 @@ public static class ShortcutCatalog
         new(["F1", "Ctrl+/", "?"], "Keyboard shortcuts"),
     ]);
 
-    public static IReadOnlyList<ShortcutGroup> All { get; } = [Player, App];
+    public static IReadOnlyList<ShortcutGroup> All { get; } = [Player, App, Mouse];
+
+    /// <summary>How the sheet lays the groups out: Player on the left, App and Mouse stacked on the right.</summary>
+    public static IReadOnlyList<IReadOnlyList<ShortcutGroup>> Columns { get; } = [[Player], [App, Mouse]];
 }

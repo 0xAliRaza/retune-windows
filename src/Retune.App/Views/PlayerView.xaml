@@ -52,7 +52,7 @@
   </UserControl.Resources>
 
   <!-- Alpha-1 background: invisible, but the whole surface receives the mouse. -->
-  <Grid x:Name="Surface" Background="#01000000" MouseMove="OnActivity" MouseLeftButtonDown="OnSurfaceClick">
+  <Grid x:Name="Surface" Background="#01000000" MouseMove="OnActivity" MouseLeftButtonDown="OnSurfaceClick" MouseWheel="OnSurfaceWheel" MouseDown="OnSurfaceButton" MouseRightButtonUp="OnSurfaceMenu">
 
     <!-- ================================ tuning card -->
     <Grid Visibility="{Binding ShowsTuning, Converter={StaticResource BoolToVisibility}}" Background="#E0000000">
@@ -249,7 +249,7 @@
     </Border>
 
     <!-- ================================ keyboard shortcuts (?, F1, Ctrl+/) -->
-    <Border Padding="26" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="20" Visibility="{Binding ShortcutsVisible, Converter={StaticResource BoolToVisibility}}">
+    <Border Margin="0,24,0,108" Padding="26" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="20" Visibility="{Binding ShortcutsVisible, Converter={StaticResource BoolToVisibility}}">
       <StackPanel>
         <DockPanel Margin="0,0,0,18">
           <ui:Button DockPanel.Dock="Right" Appearance="Primary" Content="Done" Focusable="False" Command="{Binding ToggleShortcutsCommand}" />

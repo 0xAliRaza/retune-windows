@@ -16,7 +16,7 @@
     </Style>
 
     <DataTemplate x:Key="ShortcutRow" DataType="{x:Type nav:Shortcut}">
-      <Grid Margin="0,4">
+      <Grid Margin="0,2">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="236" />
           <ColumnDefinition Width="14" />
@@ -39,16 +39,23 @@
     </DataTemplate>
 
     <DataTemplate x:Key="ShortcutColumn" DataType="{x:Type nav:ShortcutGroup}">
-      <StackPanel Width="440" Margin="0,0,36,0">
+      <StackPanel Margin="0,0,0,12">
         <TextBlock Margin="0,0,0,8" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding Title}" />
         <ItemsControl Focusable="False" ItemsSource="{Binding Shortcuts}" ItemTemplate="{StaticResource ShortcutRow}" />
       </StackPanel>
     </DataTemplate>
   </UserControl.Resources>
 
-  <ItemsControl Focusable="False" ItemsSource="{x:Static nav:ShortcutCatalog.All}" ItemTemplate="{StaticResource ShortcutColumn}">
-    <ItemsControl.ItemsPanel>
-      <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-    </ItemsControl.ItemsPanel>
-  </ItemsControl>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+    <ItemsControl Focusable="False" ItemsSource="{x:Static nav:ShortcutCatalog.Columns}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <ItemsControl Width="440" Margin="0,0,36,0" Focusable="False" ItemsSource="{Binding}" ItemTemplate="{StaticResource ShortcutColumn}" />
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </ScrollViewer>
 </UserControl>
