@@ -70,6 +70,13 @@ internal static class DevRenderer
             await Snap(shell, Path.Combine(folder, "10-settings.png"), settle: 1000).ConfigureAwait(true);
             app.Shell.CloseSettings();
 
+            // App-wide zoom, applied the way MainWindow applies it.
+            app.Shell.SelectSection(LibrarySection.Movies);
+            app.Shell.SetLayout(LayoutMode.Grid);
+            shell.LayoutTransform = new ScaleTransform(1.25, 1.25);
+            await Snap(shell, Path.Combine(folder, "11-zoom-125.png"), settle: 2500).ConfigureAwait(true);
+            shell.LayoutTransform = Transform.Identity;
+
             await PlayerPreview.RenderAsync(app, folder).ConfigureAwait(true);
         }
         finally

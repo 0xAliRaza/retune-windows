@@ -77,6 +77,23 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     internal static partial nint MonitorFromWindow(nint hwnd, uint flags);
 
+    /// <summary>DWMWA_WINDOW_CORNER_PREFERENCE (Windows 11).</summary>
+    internal const int DwmCornerPreference = 33;
+
+    /// <summary>DWMWA_BORDER_COLOR (Windows 11).</summary>
+    internal const int DwmBorderColor = 34;
+
+    internal const int CornerSquare = 1;
+    internal const int CornerRound = 2;
+    internal const uint BorderNone = 0xFFFFFFFE;
+    internal const uint BorderDefault = 0xFFFFFFFF;
+
+    /// <summary>Returns an HRESULT; older Windows versions reject the Windows 11 attributes, which is harmless.</summary>
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref uint value, int size);
+
+    [LibraryImport("dwmapi.dll")]
+    internal static partial int DwmGetWindowAttribute(nint hwnd, int attribute, out uint value, int size);
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetMonitorInfo(nint monitor, ref MonitorInfo info);

@@ -30,6 +30,18 @@
         <TextBlock Style="{StaticResource PageTitle}" Text="Settings" />
       </DockPanel>
 
+      <!-- ===================================================== Appearance -->
+      <TextBlock Style="{StaticResource SectionHeader}" Text="Appearance" />
+      <ui:CardControl Style="{StaticResource Card}" Icon="{ui:SymbolIcon ZoomIn24}">
+        <ui:CardControl.Header>
+          <StackPanel>
+            <TextBlock FontSize="14" Text="Zoom" />
+            <TextBlock Style="{StaticResource Hint}" Text="Ctrl+Plus and Ctrl+Minus, or Ctrl + mouse wheel. Ctrl+0 resets." />
+          </StackPanel>
+        </ui:CardControl.Header>
+        <ComboBox MinWidth="120" ItemsSource="{x:Static vm:SettingsViewModel.ZoomOptions}" SelectedItem="{Binding SelectedZoom}" DisplayMemberPath="Label" AutomationProperties.Name="Zoom" />
+      </ui:CardControl>
+
       <!-- ===================================================== Playback -->
       <TextBlock Style="{StaticResource SectionHeader}" Text="Playback" />
       <ui:CardControl Style="{StaticResource Card}" Icon="{ui:SymbolIcon Live24}">

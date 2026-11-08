@@ -161,6 +161,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             writer.WriteString("layout.movies", settings.MoviesLayout.ToString());
             writer.WriteString("layout.series", settings.SeriesLayout.ToString());
             writer.WriteString("layout.tileSize", settings.TileSize.ToString());
+            writer.WriteNumber("ui.zoom", ZoomLevel.Clamped(settings.Zoom));
             writer.WriteString("player.liveFormat", settings.LiveFormat.ToString());
             writer.WriteBoolean("player.autoplayNext", settings.AutoplayNext);
             writer.WriteNumber("player.volume", VolumeLevel.Clamped(settings.Volume));
@@ -193,6 +194,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             AutoplayNext = root.TryGetProperty("player.autoplayNext", out var a) && a.ValueKind is JsonValueKind.True or JsonValueKind.False ? a.GetBoolean() : d.AutoplayNext,
             Volume = root.TryGetProperty("player.volume", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var vol) ? VolumeLevel.Clamped(vol) : d.Volume,
             SubtitleStyle = SubtitleOr(root, d.SubtitleStyle),
+            Zoom = root.TryGetProperty("ui.zoom", out var z) && z.ValueKind == JsonValueKind.Number && z.TryGetDouble(out var zoom) ? ZoomLevel.Clamped(zoom) : d.Zoom,
         };
     }
 

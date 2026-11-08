@@ -4,6 +4,7 @@ using Retune.Infrastructure.Tests.Support;
 
 namespace Retune.Infrastructure.Tests;
 
+[Collection(CredentialManagerTests.Name)]
 public sealed class DataPurgeTests : IDisposable
 {
     private readonly TempFolder _temp = new();

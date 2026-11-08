@@ -10,6 +10,9 @@ namespace Retune.Presentation.ViewModels;
 /// <summary>A hidden category of the active playlist, with the button that shows it again.</summary>
 public sealed record HiddenCategoryRow(LibrarySection Section, string Key, string Name);
 
+/// <summary>A zoom choice for the Settings page.</summary>
+public sealed record ZoomOption(double Zoom, string Label);
+
 /// <summary>A live stream format choice.</summary>
 public sealed record LiveFormatOption(LiveFormat Format, string Label);
 
@@ -52,6 +55,19 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         {
             ArgumentNullException.ThrowIfNull(value);
             _settings.Update(s => s with { LiveFormat = value.Format });
+        }
+    }
+
+    /// <summary>The zoom choices, as "100%" etc.</summary>
+    public static IReadOnlyList<ZoomOption> ZoomOptions { get; } = [.. ZoomLevel.Steps.Select(z => new ZoomOption(z, ZoomLevel.Label(z)))];
+
+    public ZoomOption SelectedZoom
+    {
+        get => ZoomOptions.FirstOrDefault(o => Math.Abs(o.Zoom - _settings.Current.Zoom) < 0.001) ?? new ZoomOption(_settings.Current.Zoom, ZoomLevel.Label(_settings.Current.Zoom));
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _settings.Update(s => s with { Zoom = ZoomLevel.Clamped(value.Zoom) });
         }
     }
 
@@ -147,6 +163,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(SelectedLiveFormat));
         OnPropertyChanged(nameof(AutoplayNext));
+        OnPropertyChanged(nameof(SelectedZoom));
     }
 
     private void OnLibraryChanged(object? sender, EventArgs e)

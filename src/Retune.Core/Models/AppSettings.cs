@@ -26,6 +26,9 @@ public sealed record AppSettings
 
     public SubtitleStyle SubtitleStyle { get; init; } = SubtitleStyle.Default;
 
+    /// <summary>App-wide zoom, 0.75–2 (see <see cref="ZoomLevel"/>).</summary>
+    public double Zoom { get; init; } = ZoomLevel.Default;
+
     public LayoutMode LayoutFor(LibrarySection section) => section switch
     {
         LibrarySection.Live => LiveLayout,

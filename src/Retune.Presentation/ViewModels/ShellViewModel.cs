@@ -58,6 +58,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         Playlists.PropertyChanged += OnPlaylistsChanged;
         _library.Changed += OnLibraryChanged;
+        _settings.Changed += OnSettingsChanged;
         _player.PlayingItemChanged += OnPlayingChanged;
     }
 
@@ -68,6 +69,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public CategoryListViewModel Categories { get; } = new();
 
     public AppSettings Settings => _settings.Current;
+
+    /// <summary>App-wide zoom (1 = 100%), applied by the window to the browse UI, dialogs and player controls.</summary>
+    public double Zoom => ZoomLevel.Clamped(_settings.Current.Zoom);
 
     [ObservableProperty]
     public partial LibrarySection Section { get; private set; } = LibrarySection.Live;
@@ -118,6 +122,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         CloseSettings();
         Playlists.PropertyChanged -= OnPlaylistsChanged;
         _library.Changed -= OnLibraryChanged;
+        _settings.Changed -= OnSettingsChanged;
         _player.PlayingItemChanged -= OnPlayingChanged;
     }
 
@@ -359,6 +364,17 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void ZoomIn() => SetZoom(ZoomLevel.In(Zoom));
+
+    [RelayCommand]
+    public void ZoomOut() => SetZoom(ZoomLevel.Out(Zoom));
+
+    [RelayCommand]
+    public void ResetZoom() => SetZoom(ZoomLevel.Default);
+
+    public void SetZoom(double zoom) => _settings.Update(s => s with { Zoom = ZoomLevel.Clamped(zoom) });
+
+    [RelayCommand]
     public void SetTileSize(TileSize size)
     {
         Content.TileSize = size;
@@ -426,6 +442,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     partial void OnDetailChanged(DetailViewModel? value) => OnPropertyChanged(nameof(CanGoBack));
+
+    private void OnSettingsChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(Zoom));
 
     partial void OnSettingsPageChanged(SettingsViewModel? value)
     {

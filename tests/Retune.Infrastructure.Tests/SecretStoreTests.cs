@@ -3,6 +3,7 @@ using Retune.Infrastructure.Secrets;
 namespace Retune.Infrastructure.Tests;
 
 /// <summary>Runs against the real Credential Manager under a unique test prefix, cleaned up afterwards.</summary>
+[Collection(CredentialManagerTests.Name)]
 public sealed class SecretStoreTests : IDisposable
 {
     private readonly CredentialManagerSecretStore _store = new($"RetuneTest-{Guid.NewGuid():N}/");

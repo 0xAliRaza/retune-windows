@@ -44,6 +44,7 @@ public static class ShortcutCatalog
         new(["Ctrl+N"], "Add playlist"),
         new(["Ctrl+L"], "Lock categories again"),
         new(["Ctrl+,"], "Settings"),
+        new(["Ctrl+Plus", "Ctrl+Minus", "Ctrl+0"], "Zoom in / out / reset"),
         new(["F11"], "Full screen"),
         new(["F1", "Ctrl+/", "?"], "Keyboard shortcuts"),
     ]);

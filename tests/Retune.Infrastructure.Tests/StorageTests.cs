@@ -97,6 +97,20 @@ public sealed class StorageTests : IDisposable
     }
 
     [Fact]
+    public void Zoom_is_saved_and_a_bad_value_falls_back()
+    {
+        var store = new SettingsStore(Files());
+        store.Save(AppSettings.Default with { Zoom = 1.25 });
+        Assert.Equal(1.25, store.Load().Zoom);
+
+        File.WriteAllText(_temp.File(SettingsStore.FileName), "{ \"version\": 1, \"ui.zoom\": 40 }");
+        Assert.Equal(ZoomLevel.Max, new SettingsStore(Files()).Load().Zoom);
+
+        File.WriteAllText(_temp.File(SettingsStore.FileName), "{ \"version\": 1, \"ui.zoom\": \"big\" }");
+        Assert.Equal(ZoomLevel.Default, new SettingsStore(Files()).Load().Zoom);
+    }
+
+    [Fact]
     public void A_corrupt_store_is_backed_up_not_overwritten()
     {
         File.WriteAllText(_temp.File(LibraryStore.FileName), "{ this is not json");

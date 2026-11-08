@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Interop;
 using Retune.App.Composition;
 using Retune.App.Services;
@@ -22,6 +23,7 @@ public partial class MainWindow : FluentWindow
     private readonly FullScreenController _fullScreen;
     private PlayerViewModel? _player;
     private SystemMediaControls? _mediaControls;
+    private readonly ScaleTransform _zoom = new();
     private bool _playerEnteredFullScreen;
 
     public MainWindow(AppContainer container)
@@ -40,6 +42,20 @@ public partial class MainWindow : FluentWindow
         PreviewKeyDown += OnPreviewKeyDown;
         PreviewMouseDown += OnMouseBack;
         Loaded += (_, _) => Controls.TitleBarAccessibility.NameCaptionButtons(AppTitleBar);
+
+        // App-wide zoom: the browse UI, dialogs and player controls (the video itself always fills the window).
+        ShellPane.LayoutTransform = _zoom;
+        DialogHost.LayoutTransform = _zoom;
+        PlayerChrome.LayoutTransform = _zoom;
+        ApplyZoom();
+        container.Shell.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ShellViewModel.Zoom))
+            {
+                ApplyZoom();
+            }
+        };
+        PreviewMouseWheel += OnZoomWheel;
     }
 
     public AppContainer Container { get; }
@@ -186,6 +202,9 @@ public partial class MainWindow : FluentWindow
                 break;
             case Key.N when ctrl: _ = Shell.AddPlaylistAsync(); break;
             case Key.L when ctrl: Shell.LockAll(); break;
+            case Key.OemPlus or Key.Add when ctrl: Shell.ZoomIn(); break;
+            case Key.OemMinus or Key.Subtract when ctrl: Shell.ZoomOut(); break;
+            case Key.D0 or Key.NumPad0 when ctrl: Shell.ResetZoom(); break;
             case Key.OemComma when ctrl && !playing: Shell.OpenSettings(); break;
             case Key.F11: ToggleFullScreen(); break;
             case Key.F1:
@@ -215,6 +234,26 @@ public partial class MainWindow : FluentWindow
         else
         {
             _ = Container.Dialogs.ShowShortcutsAsync();
+        }
+    }
+
+    private void ApplyZoom() => _zoom.ScaleX = _zoom.ScaleY = Shell.Zoom;
+
+    /// <summary>Ctrl + mouse wheel zooms, like a browser.</summary>
+    private void OnZoomWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && !_dialogs.IsOpen)
+        {
+            if (e.Delta > 0)
+            {
+                Shell.ZoomIn();
+            }
+            else
+            {
+                Shell.ZoomOut();
+            }
+
+            e.Handled = true;
         }
     }
 

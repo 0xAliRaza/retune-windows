@@ -96,6 +96,29 @@ public sealed class SettingsTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Zoom_keys_step_reset_and_persist_and_the_settings_page_follows()
+    {
+        var changes = new List<string?>();
+        _app.Shell.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+
+        _app.Shell.ZoomIn();
+        _app.Shell.ZoomIn();
+        Assert.Equal(1.25, _app.Shell.Zoom);
+        Assert.Equal(1.25, _app.Settings.Saved.Zoom);
+        Assert.Equal("125%", Page.SelectedZoom.Label);
+        Assert.Contains(nameof(ShellViewModel.Zoom), changes);
+
+        _app.Shell.ZoomOut();
+        Assert.Equal(1.1, _app.Shell.Zoom);
+
+        Page.SelectedZoom = SettingsViewModel.ZoomOptions.Single(o => o.Label == "150%");
+        Assert.Equal(1.5, _app.Shell.Zoom);
+
+        _app.Shell.ResetZoom();
+        Assert.Equal(1, _app.Settings.Saved.Zoom);
+    }
+
+    [Fact]
     public void Clearing_artwork_runs_once_then_reads_cleared()
     {
         Page.ClearArtworkCommand.Execute(null);

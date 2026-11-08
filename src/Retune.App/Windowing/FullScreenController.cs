@@ -6,7 +6,9 @@ namespace Retune.App.Windowing;
 
 /// <summary>
 /// Borderless full screen over the window's current monitor (taskbar included), restoring the exact
-/// previous bounds and state on exit. Works with WPF-UI's custom-chrome windows.
+/// previous bounds and state on exit. Works with WPF-UI's custom-chrome windows. Windows 11 draws a 1-pixel border
+/// and rounds the corners of every window, even one the size of the monitor, so both are switched off while in
+/// full screen.
 /// </summary>
 public sealed class FullScreenController(Window window)
 {
@@ -52,6 +54,7 @@ public sealed class FullScreenController(Window window)
         }
 
         IsFullScreen = true;
+        SetEdge(hwnd, fullScreen: true);
         window.ResizeMode = ResizeMode.NoResize;
         window.WindowState = WindowState.Normal;
         var m = info.Monitor;
@@ -73,6 +76,16 @@ public sealed class FullScreenController(Window window)
         window.Width = _restoreBounds.Width;
         window.Height = _restoreBounds.Height;
         window.WindowState = _restoreState;
+        SetEdge(new WindowInteropHelper(window).Handle, fullScreen: false);
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>No border and square corners in full screen; otherwise the default border and the window's round corners.</summary>
+    internal static void SetEdge(nint hwnd, bool fullScreen)
+    {
+        var border = fullScreen ? NativeMethods.BorderNone : NativeMethods.BorderDefault;
+        var corners = (uint)(fullScreen ? NativeMethods.CornerSquare : NativeMethods.CornerRound);
+        _ = NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DwmBorderColor, ref border, sizeof(uint));
+        _ = NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DwmCornerPreference, ref corners, sizeof(uint));
     }
 }
