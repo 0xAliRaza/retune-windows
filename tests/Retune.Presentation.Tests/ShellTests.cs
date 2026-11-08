@@ -198,6 +198,25 @@ public sealed class ShellTests
     }
 
     [Fact]
+    public async Task Resume_plays_the_last_watched_channel_within_all_channels()
+    {
+        await using var app = await AppHarness.StartAsync();
+        var playlist = await app.AddDemoAsync();
+        Assert.False(app.Shell.ResumeLastChannel());
+
+        var channel = app.Controller.Index!.Catalog.Channels[7];
+        app.Library.Update(s => s.RecordRecentChannel(Core.Library.LibraryKeys.Content(playlist.Id, ContentKind.Live, channel.Id)));
+        app.Shell.SelectSection(LibrarySection.Movies);
+
+        Assert.True(app.Shell.ResumeLastChannel());
+
+        var (lineup, _) = Assert.Single(app.Player.Played);
+        Assert.Equal(channel.Id, lineup.Items[lineup.StartIndex].Id);
+        Assert.Equal(app.Controller.Index.Catalog.Channels.Count, lineup.Items.Count);
+        Assert.Equal(LibrarySection.Live, app.Shell.Section);
+    }
+
+    [Fact]
     public async Task A_failed_catalog_cache_save_is_logged_and_browsing_still_works()
     {
         await using var app = await AppHarness.StartAsync();

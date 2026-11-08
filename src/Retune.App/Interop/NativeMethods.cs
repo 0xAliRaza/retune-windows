@@ -94,6 +94,18 @@ internal static partial class NativeMethods
 
     [LibraryImport("dwmapi.dll")]
     internal static partial int DwmGetWindowAttribute(nint hwnd, int attribute, out uint value, int size);
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct CursorPoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    /// <summary>The pointer in physical screen pixels.</summary>
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetCursorPos(out CursorPoint point);
+
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetMonitorInfo(nint monitor, ref MonitorInfo info);

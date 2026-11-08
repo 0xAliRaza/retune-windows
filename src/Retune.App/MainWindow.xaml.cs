@@ -202,6 +202,7 @@ public partial class MainWindow : FluentWindow
                 break;
             case Key.N when ctrl: _ = Shell.AddPlaylistAsync(); break;
             case Key.L when ctrl: Shell.LockAll(); break;
+            case Key.B when ctrl && !playing: Shell.ToggleSidebar(); break;
             case Key.OemPlus or Key.Add when ctrl: Shell.ZoomIn(); break;
             case Key.OemMinus or Key.Subtract when ctrl: Shell.ZoomOut(); break;
             case Key.D0 or Key.NumPad0 when ctrl: Shell.ResetZoom(); break;
@@ -245,7 +246,7 @@ public partial class MainWindow : FluentWindow
         if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _player?.IsPresented == true)
         {
             // The wheel follows keyboard focus (this window), not the pointer over the player's overlay.
-            PlayerChrome.WheelFromWindow(e.Delta, PointToScreen(e.GetPosition(this)));
+            PlayerChrome.WheelFromWindow(e.Delta);
             e.Handled = true;
             return;
         }

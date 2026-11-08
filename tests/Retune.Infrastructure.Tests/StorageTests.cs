@@ -100,8 +100,9 @@ public sealed class StorageTests : IDisposable
     public void Zoom_is_saved_and_a_bad_value_falls_back()
     {
         var store = new SettingsStore(Files());
-        store.Save(AppSettings.Default with { Zoom = 1.25 });
+        store.Save(AppSettings.Default with { Zoom = 1.25, SidebarCollapsed = true });
         Assert.Equal(1.25, store.Load().Zoom);
+        Assert.True(store.Load().SidebarCollapsed);
 
         File.WriteAllText(_temp.File(SettingsStore.FileName), "{ \"version\": 1, \"ui.zoom\": 40 }");
         Assert.Equal(ZoomLevel.Max, new SettingsStore(Files()).Load().Zoom);

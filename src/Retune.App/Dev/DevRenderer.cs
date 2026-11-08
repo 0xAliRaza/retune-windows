@@ -77,6 +77,10 @@ internal static class DevRenderer
             await Snap(shell, Path.Combine(folder, "11-zoom-125.png"), settle: 2500).ConfigureAwait(true);
             shell.LayoutTransform = Transform.Identity;
 
+            app.Shell.ToggleSidebar();
+            await Snap(shell, Path.Combine(folder, "12-sidebar-collapsed.png"), settle: 1500).ConfigureAwait(true);
+            app.Shell.ToggleSidebar();
+
             await PlayerPreview.RenderAsync(app, folder).ConfigureAwait(true);
         }
         finally

@@ -11,14 +11,24 @@
     <!-- ======================================================= browser -->
     <Grid x:Name="Browser" Visibility="{Binding HasPlaylists, Converter={StaticResource BoolToVisibility}}">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="232" />
+        <ColumnDefinition>
+          <ColumnDefinition.Style>
+            <Style TargetType="ColumnDefinition">
+              <Setter Property="Width" Value="232" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False"><Setter Property="Width" Value="56" /></DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </ColumnDefinition.Style>
+        </ColumnDefinition>
         <ColumnDefinition Width="272" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
       <!-- sidebar -->
       <DockPanel Grid.Column="0" Background="{DynamicResource LayerOnMicaBaseAltFillColorTransparentBrush}">
-        <StackPanel DockPanel.Dock="Bottom" Margin="12,8,12,14">
+        <StackPanel DockPanel.Dock="Bottom" Margin="6,8,6,14">
+          <Grid Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
           <StackPanel Margin="6,0,6,10" Visibility="{Binding Playlists.Account, Converter={StaticResource HasValueToVisibility}}">
             <StackPanel Orientation="Horizontal">
               <ui:SymbolIcon x:Name="AccountIcon" Symbol="PersonAvailable16" FontSize="13" Foreground="#3FB950" />
@@ -27,11 +37,14 @@
             <TextBlock Margin="0,3,0,0" Style="{StaticResource Caption}" FontSize="11" Text="{Binding Playlists.Account.ExpiresAt, StringFormat=Expires {0:d MMM yyyy}}" Visibility="{Binding Playlists.Account.ExpiresAt, Converter={StaticResource HasValueToVisibility}}" />
             <TextBlock Style="{StaticResource Caption}" FontSize="11" Text="{Binding Playlists.Account.MaxConnections, StringFormat={}{0} connection(s) allowed}" Visibility="{Binding Playlists.Account.MaxConnections, Converter={StaticResource HasValueToVisibility}}" />
           </StackPanel>
-          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding AddPlaylistCommand}" Icon="{ui:SymbolIcon AddCircle24}" Content="Add Playlist" ToolTip="Add a playlist (Ctrl+N)" />
-          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding OpenSettingsCommand}" Icon="{ui:SymbolIcon Settings24}" Content="Settings" ToolTip="Settings (Ctrl+,)" />
+          </Grid>
+          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding AddPlaylistCommand}" Icon="{ui:SymbolIcon AddCircle24}" ToolTip="Add a playlist (Ctrl+N)" AutomationProperties.Name="Add Playlist"><TextBlock Text="Add Playlist" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" /></ui:Button>
+          <ui:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Appearance="Transparent" Command="{Binding OpenSettingsCommand}" Icon="{ui:SymbolIcon Settings24}" ToolTip="Settings (Ctrl+,)" AutomationProperties.Name="Settings"><TextBlock Text="Settings" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" /></ui:Button>
         </StackPanel>
 
-        <StackPanel DockPanel.Dock="Top" Margin="18,14,12,6" Orientation="Horizontal">
+        <StackPanel DockPanel.Dock="Top" Margin="8,10,8,6" Orientation="Horizontal">
+          <ui:Button Width="40" Height="36" Padding="0" Appearance="Transparent" BorderThickness="0" Command="{Binding ToggleSidebarCommand}" Icon="{ui:SymbolIcon Navigation24}" ToolTip="Show or hide the sidebar (Ctrl+B)" AutomationProperties.Name="Show or hide the sidebar" />
+          <StackPanel Margin="6,0,0,0" Orientation="Horizontal" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
           <Border Width="28" Height="28" CornerRadius="7">
             <Border.Background>
               <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -42,35 +55,38 @@
             <ui:SymbolIcon Symbol="Play24" Filled="True" FontSize="15" Foreground="White" Margin="2,0,0,0" />
           </Border>
           <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="Retune" />
+          </StackPanel>
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <TextBlock Style="{StaticResource SectionHeader}" Text="Library" Margin="18,16,12,6" />
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Library" Margin="18,16,12,6" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
             <ItemsControl ItemsSource="{Binding Sections}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:SectionItem}">
-                  <Button Style="{StaticResource NavRow}" AutomationProperties.Name="{Binding Title}" Command="{Binding DataContext.SelectSectionCommand, ElementName=Root}" CommandParameter="{Binding Section}">
+                  <Button Style="{StaticResource NavRow}" AutomationProperties.Name="{Binding Title}" ToolTip="{Binding Title}" ToolTipService.IsEnabled="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource Equals}, ConverterParameter=False}" Command="{Binding DataContext.SelectSectionCommand, ElementName=Root}" CommandParameter="{Binding Section}">
                     <DockPanel>
-                      <TextBlock DockPanel.Dock="Right" Style="{StaticResource CountBadge}" Text="{Binding Count, Converter={StaticResource Count}}" />
+                      <TextBlock DockPanel.Dock="Right" Style="{StaticResource CountBadge}" Text="{Binding Count, Converter={StaticResource Count}}" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
                       <ui:SymbolIcon x:Name="Icon" Symbol="Live24" FontSize="18" Margin="0,0,12,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                      <TextBlock Style="{StaticResource Body}" Text="{Binding Title}" VerticalAlignment="Center" />
+                      <TextBlock Style="{StaticResource Body}" Text="{Binding Title}" VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
                     </DockPanel>
                   </Button>
                   <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Section}" Value="Movies"><Setter TargetName="Icon" Property="Symbol" Value="Filmstrip24" /></DataTrigger>
                     <DataTrigger Binding="{Binding Section}" Value="Series"><Setter TargetName="Icon" Property="Symbol" Value="MoviesAndTv24" /></DataTrigger>
                     <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" /></DataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.IsSidebarExpanded, ElementName=Root}" Value="False"><Setter TargetName="Icon" Property="Margin" Value="0" /></DataTrigger>
                   </DataTemplate.Triggers>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Style="{StaticResource SectionHeader}" Text="Playlists" Margin="18,20,12,6" />
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Playlists" Margin="18,20,12,6" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
+            <Separator Margin="14,10" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
             <ItemsControl ItemsSource="{Binding PlaylistItems}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="{x:Type vm:PlaylistItem}">
-                  <Button Style="{StaticResource NavRow}" MinHeight="44" AutomationProperties.Name="{Binding Name}" Command="{Binding DataContext.SelectPlaylistCommand, ElementName=Root}" CommandParameter="{Binding Playlist}">
+                  <Button Style="{StaticResource NavRow}" MinHeight="44" AutomationProperties.Name="{Binding Name}" ToolTip="{Binding Name}" ToolTipService.IsEnabled="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource Equals}, ConverterParameter=False}" Command="{Binding DataContext.SelectPlaylistCommand, ElementName=Root}" CommandParameter="{Binding Playlist}">
                     <Button.ContextMenu>
                       <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                         <MenuItem Header="Use This Playlist" Command="{Binding Source={x:Reference Root}, Path=DataContext.SelectPlaylistCommand}" CommandParameter="{Binding Playlist}" />
@@ -81,13 +97,14 @@
                     </Button.ContextMenu>
                     <DockPanel>
                       <ui:SymbolIcon x:Name="Check" Symbol="Circle20" FontSize="16" Margin="0,0,12,0" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                      <StackPanel VerticalAlignment="Center">
+                      <StackPanel VerticalAlignment="Center" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Style="{StaticResource Body}" Text="{Binding Name}" />
                         <TextBlock Style="{StaticResource Caption}" FontSize="11" Text="{Binding KindLabel}" />
                       </StackPanel>
                     </DockPanel>
                   </Button>
                   <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding DataContext.IsSidebarExpanded, ElementName=Root}" Value="False"><Setter TargetName="Check" Property="Margin" Value="0" /></DataTrigger>
                     <DataTrigger Binding="{Binding IsActive}" Value="True">
                       <Setter TargetName="Check" Property="Symbol" Value="CheckmarkCircle20" />
                       <Setter TargetName="Check" Property="Filled" Value="True" />

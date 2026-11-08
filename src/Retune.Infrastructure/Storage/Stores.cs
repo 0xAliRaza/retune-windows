@@ -162,6 +162,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             writer.WriteString("layout.series", settings.SeriesLayout.ToString());
             writer.WriteString("layout.tileSize", settings.TileSize.ToString());
             writer.WriteNumber("ui.zoom", ZoomLevel.Clamped(settings.Zoom));
+            writer.WriteBoolean("ui.sidebarCollapsed", settings.SidebarCollapsed);
             writer.WriteString("player.liveFormat", settings.LiveFormat.ToString());
             writer.WriteBoolean("player.autoplayNext", settings.AutoplayNext);
             writer.WriteNumber("player.volume", VolumeLevel.Clamped(settings.Volume));
@@ -194,6 +195,7 @@ public sealed class SettingsStore(JsonFileStore files) : ISettingsStore
             AutoplayNext = root.TryGetProperty("player.autoplayNext", out var a) && a.ValueKind is JsonValueKind.True or JsonValueKind.False ? a.GetBoolean() : d.AutoplayNext,
             Volume = root.TryGetProperty("player.volume", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var vol) ? VolumeLevel.Clamped(vol) : d.Volume,
             SubtitleStyle = SubtitleOr(root, d.SubtitleStyle),
+            SidebarCollapsed = root.TryGetProperty("ui.sidebarCollapsed", out var sc) && sc.ValueKind == JsonValueKind.True,
             Zoom = root.TryGetProperty("ui.zoom", out var z) && z.ValueKind == JsonValueKind.Number && z.TryGetDouble(out var zoom) ? ZoomLevel.Clamped(zoom) : d.Zoom,
         };
     }

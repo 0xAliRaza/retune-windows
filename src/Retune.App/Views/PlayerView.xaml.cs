@@ -117,7 +117,7 @@ public partial class PlayerView : UserControl
     /// <summary>Mouse wheel over the video: channels on live TV, otherwise volume (Ctrl + wheel is the app zoom).</summary>
     private void OnSurfaceWheel(object sender, MouseWheelEventArgs e)
     {
-        if (_player is null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (_player is null || Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || !IsOverVideo(e.OriginalSource as DependencyObject))
         {
             return;
         }
@@ -128,24 +128,31 @@ public partial class PlayerView : UserControl
 
     /// <summary>
     /// Wheel input that reached the main window instead of the overlay (it follows keyboard focus): scrolls the
-    /// channel list when the pointer is over it, otherwise acts like the wheel over the video.
+    /// channel list when the pointer is over it, acts like the wheel over the video when the pointer is on the bare
+    /// video, and does nothing over the bars and panels.
     /// </summary>
-    public void WheelFromWindow(int delta, Point screenPoint)
+    public void WheelFromWindow(int delta)
     {
-        if (_player is null)
+        if (_player is null || !Interop.NativeMethods.GetCursorPos(out var cursor))
         {
             return;
         }
 
-        if (_player.ListVisible && ListRowsBox.IsVisible && new Rect(ListRowsBox.RenderSize).Contains(ListRowsBox.PointFromScreen(screenPoint))
-            && FindScroller(ListRowsBox) is { } scroller)
+        // The window's own idea of the pointer is stale while the pointer is over this overlay, so ask Windows.
+        var hit = InputHitTest(PointFromScreen(new Point(cursor.X, cursor.Y))) as DependencyObject;
+        if (_player.ListVisible && IsInside(hit, ListRowsBox) && FindScroller(ListRowsBox) is { } scroller)
         {
             scroller.ScrollToVerticalOffset(scroller.VerticalOffset - (delta / (double)Mouse.MouseWheelDeltaForOneLine * ListWheelPixels));
-            return;
         }
-
-        Wheel(delta);
+        else if (IsOverVideo(hit))
+        {
+            Wheel(delta);
+        }
     }
+    /// <summary>The pointer is on the picture (or the tuning card, spinner or messages over it), not on a panel or bar.</summary>
+    private bool IsOverVideo(DependencyObject? hit) =>
+        hit is not null && IsInside(hit, Surface)
+        && !new DependencyObject[] { TopBar, BottomBar, ListPanel, StatsPanel, UpNextPanel, ShortcutsPanel, ErrorPanel }.Any(panel => IsInside(hit, panel));
 
     private void Wheel(int delta) => _player!.Wheel(delta > 0, volume: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
 

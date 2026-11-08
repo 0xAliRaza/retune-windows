@@ -73,6 +73,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <summary>App-wide zoom (1 = 100%), applied by the window to the browse UI, dialogs and player controls.</summary>
     public double Zoom => ZoomLevel.Clamped(_settings.Current.Zoom);
 
+    /// <summary>False when the sidebar is collapsed to an icon rail.</summary>
+    public bool IsSidebarExpanded => !_settings.Current.SidebarCollapsed;
+
     [ObservableProperty]
     public partial LibrarySection Section { get; private set; } = LibrarySection.Live;
 
@@ -363,6 +366,36 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _settings.Update(s => s.WithLayout(Section, layout));
     }
 
+    /// <summary>
+    /// Plays the active playlist's most recently watched channel, within All channels so ↑/↓ zap as usual. Used when
+    /// Retune restarts after an update (<c>--resume-last</c>). False when there is nothing to resume.
+    /// </summary>
+    public bool ResumeLastChannel()
+    {
+        if (Playlists.Active is not { } active || _library.State.RecentChannelIds(active.Id) is not [var id, ..])
+        {
+            return false;
+        }
+
+        SelectSection(LibrarySection.Live);
+        if (Categories.Fixed is [var all, ..])
+        {
+            SelectCategory(all);
+        }
+
+        if (Content.Items.FirstOrDefault(i => i.Source is Channel c && c.Id == id) is not { } item)
+        {
+            return false;
+        }
+
+        Open(item);
+        return true;
+    }
+
+    /// <summary>Ctrl+B and the button at the top of the sidebar.</summary>
+    [RelayCommand]
+    public void ToggleSidebar() => _settings.Update(s => s with { SidebarCollapsed = !s.SidebarCollapsed });
+
     [RelayCommand]
     public void ZoomIn() => SetZoom(ZoomLevel.In(Zoom));
 
@@ -443,7 +476,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     partial void OnDetailChanged(DetailViewModel? value) => OnPropertyChanged(nameof(CanGoBack));
 
-    private void OnSettingsChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(Zoom));
+    private void OnSettingsChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(Zoom));
+        OnPropertyChanged(nameof(IsSidebarExpanded));
+    }
 
     partial void OnSettingsPageChanged(SettingsViewModel? value)
     {

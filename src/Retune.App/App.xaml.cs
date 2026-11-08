@@ -10,6 +10,7 @@ public partial class App : Application
 {
     private const string InstanceName = "Retune.SingleInstance.v1";
     private const string PurgeDataArgument = "--purge-data";
+    private const string ResumeLastArgument = "--resume-last";
 
     private Mutex? _instance;
     private AppContainer? _container;
@@ -77,6 +78,11 @@ public partial class App : Application
         }
 
         await DevSession.RunAsync(_container, dev).ConfigureAwait(true);
+        if (e.Args.Contains(ResumeLastArgument))
+        {
+            // After an update restart: back on the channel that was playing.
+            _container.Shell.ResumeLastChannel();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

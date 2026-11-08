@@ -119,6 +119,23 @@ public sealed class SettingsTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_sidebar_collapses_and_expands_and_is_remembered()
+    {
+        Assert.True(_app.Shell.IsSidebarExpanded);
+        var changed = 0;
+        _app.Shell.PropertyChanged += (_, e) => changed += e.PropertyName == nameof(ShellViewModel.IsSidebarExpanded) ? 1 : 0;
+
+        _app.Shell.ToggleSidebar();
+        Assert.False(_app.Shell.IsSidebarExpanded);
+        Assert.True(_app.Settings.Saved.SidebarCollapsed);
+
+        _app.Shell.ToggleSidebar();
+        Assert.True(_app.Shell.IsSidebarExpanded);
+        Assert.False(_app.Settings.Saved.SidebarCollapsed);
+        Assert.Equal(2, changed);
+    }
+
+    [Fact]
     public void Clearing_artwork_runs_once_then_reads_cleared()
     {
         Page.ClearArtworkCommand.Execute(null);

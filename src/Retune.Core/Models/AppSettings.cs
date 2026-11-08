@@ -29,6 +29,9 @@ public sealed record AppSettings
     /// <summary>App-wide zoom, 0.75–2 (see <see cref="ZoomLevel"/>).</summary>
     public double Zoom { get; init; } = ZoomLevel.Default;
 
+    /// <summary>The sidebar shows as a slim icon rail (Ctrl+B).</summary>
+    public bool SidebarCollapsed { get; init; }
+
     public LayoutMode LayoutFor(LibrarySection section) => section switch
     {
         LibrarySection.Live => LiveLayout,
