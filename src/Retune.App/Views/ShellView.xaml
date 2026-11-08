@@ -60,23 +60,6 @@
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-            <Button Margin="6,12,6,1" Style="{StaticResource NavRow}" DataContext="{Binding HomeNav}" Command="{Binding DataContext.OpenHomeCommand, ElementName=Root}" AutomationProperties.Name="Home" ToolTip="Home (Alt+Home)" ToolTipService.IsEnabled="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource Equals}, ConverterParameter=False}">
-              <DockPanel>
-                <ui:SymbolIcon Symbol="Home24" FontSize="18">
-                  <ui:SymbolIcon.Style>
-                    <Style TargetType="ui:SymbolIcon">
-                      <Setter Property="Margin" Value="0,0,12,0" />
-                      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsSelected}" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" /></DataTrigger>
-                        <DataTrigger Binding="{Binding DataContext.IsSidebarExpanded, ElementName=Root}" Value="False"><Setter Property="Margin" Value="0" /></DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </ui:SymbolIcon.Style>
-                </ui:SymbolIcon>
-                <TextBlock Style="{StaticResource Body}" VerticalAlignment="Center" Text="Home" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
-              </DockPanel>
-            </Button>
             <TextBlock Style="{StaticResource SectionHeader}" Text="Library" Margin="18,16,12,6" Visibility="{Binding DataContext.IsSidebarExpanded, ElementName=Root, Converter={StaticResource BoolToVisibility}}" />
             <ItemsControl ItemsSource="{Binding Sections}">
               <ItemsControl.ItemTemplate>
@@ -193,17 +176,6 @@
 
         <v:ContentView Grid.Row="1" Visibility="{Binding CanGoBack, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
         <ContentControl Grid.Row="1" Content="{Binding Detail}" Visibility="{Binding CanGoBack, Converter={StaticResource BoolToVisibility}}">
-          <ContentControl.Resources>
-            <DataTemplate DataType="{x:Type vm:MovieDetailViewModel}"><v:MovieDetailView /></DataTemplate>
-            <DataTemplate DataType="{x:Type vm:SeriesDetailViewModel}"><v:SeriesDetailView /></DataTemplate>
-          </ContentControl.Resources>
-        </ContentControl>
-      </Grid>
-
-      <!-- home page, in place of the categories and content; a film or series opened from it shows here too -->
-      <Grid Grid.Column="1" Grid.ColumnSpan="2" Background="{DynamicResource ApplicationBackgroundBrush}" Visibility="{Binding IsHomeOpen, Converter={StaticResource BoolToVisibility}}">
-        <v:HomeView Visibility="{Binding Detail, Converter={StaticResource HasValueToVisibility}, ConverterParameter=invert}" />
-        <ContentControl Content="{Binding Detail}" Visibility="{Binding Detail, Converter={StaticResource HasValueToVisibility}}">
           <ContentControl.Resources>
             <DataTemplate DataType="{x:Type vm:MovieDetailViewModel}"><v:MovieDetailView /></DataTemplate>
             <DataTemplate DataType="{x:Type vm:SeriesDetailViewModel}"><v:SeriesDetailView /></DataTemplate>

@@ -29,7 +29,9 @@ public partial class App : Application
 
         var dev = DevOptions.Parse(e.Args);
 
-        if (dev.RenderFolder is null && !ClaimSingleInstance())
+        // Isolated dev and test runs (RETUNE_DATA_DIR) never meet the user's own Retune: no lock, no bringing it forward.
+        var isolated = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Infrastructure.Storage.AppPaths.DataDirectoryVariable));
+        if (dev.RenderFolder is null && !isolated && !ClaimSingleInstance())
         {
             Shutdown();
             return;

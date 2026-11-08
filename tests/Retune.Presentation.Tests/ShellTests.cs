@@ -217,48 +217,6 @@ public sealed class ShellTests
     }
 
     [Fact]
-    public async Task Home_is_the_landing_page_and_its_rows_play_open_and_see_all()
-    {
-        await using var app = await AppHarness.StartAsync();
-        var playlist = await app.AddDemoAsync();
-        Assert.True(app.Shell.IsHomeOpen);
-        Assert.True(app.Shell.Home.IsEmpty);
-        Assert.DoesNotContain(app.Shell.Sections, s => s.IsSelected);
-
-        var catalog = app.Controller.Index!.Catalog;
-        string Key(ContentKind kind, string id) => Core.Library.LibraryKeys.Content(playlist.Id, kind, id);
-        app.Library.Update(s => Core.Library.LibraryOperations.ToggleFavorite(Core.Library.LibraryOperations.ToggleFavorite(Core.Library.LibraryOperations.ToggleFavorite(s,
-            Key(ContentKind.Live, catalog.Channels[3].Id)), Key(ContentKind.Live, catalog.Channels[9].Id)), Key(ContentKind.Movie, catalog.Movies[2].Id)));
-
-        Assert.Equal(["Favorite Channels", "Favorite Movies"], app.Shell.Home.Rows.Select(r => r.Title));
-
-        // A channel tile plays within its row.
-        var channels = app.Shell.Home.Rows[0];
-        app.Shell.Open(channels.Items[1]);
-        var (lineup, _) = Assert.Single(app.Player.Played);
-        Assert.Equal(2, lineup.Items.Count);
-        Assert.Equal(catalog.Channels[9].Id, lineup.Items[lineup.StartIndex].Id);
-
-        // A film opens its page over Home; Back returns to Home.
-        var movies = app.Shell.Home.Rows[1];
-        app.Shell.Open(movies.Items[0]);
-        Assert.IsType<MovieDetailViewModel>(app.Shell.Detail);
-        app.Shell.Back();
-        Assert.Null(app.Shell.Detail);
-        Assert.True(app.Shell.IsHomeOpen);
-
-        // See all opens the full favourites list in its section.
-        app.Shell.SeeAll(channels);
-        Assert.False(app.Shell.IsHomeOpen);
-        Assert.Equal((LibrarySection.Live, CategoryFilter.Favorites), (app.Shell.Section, app.Shell.Filter));
-        Assert.Equal(2, app.Shell.Content.Items.Count);
-        Assert.Contains(app.Shell.Sections, s => s.IsSelected && s.Section == LibrarySection.Live);
-
-        app.Shell.OpenHome();
-        Assert.True(app.Shell.HomeNav.IsSelected);
-    }
-
-    [Fact]
     public async Task A_failed_catalog_cache_save_is_logged_and_browsing_still_works()
     {
         await using var app = await AppHarness.StartAsync();

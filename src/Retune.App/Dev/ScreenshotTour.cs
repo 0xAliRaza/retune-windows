@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Retune.App.Composition;
 using Retune.Core.Models;
@@ -12,6 +13,8 @@ namespace Retune.App.Dev;
 /// </summary>
 internal static class ScreenshotTour
 {
+    private const double TourZoom = 1.25;
+
     public static async Task RunAsync(AppContainer app, MainWindow window, string provider, string folder)
     {
         Directory.CreateDirectory(folder);
@@ -27,13 +30,14 @@ internal static class ScreenshotTour
                 WindowCapture.SavePng(window, Path.Combine(folder, name));
             }
 
-            // A little history so Favorites, badges and Continue Watching look lived-in.
-            shell.SelectSection(LibrarySection.Movies);
+            // A little history so favourites, badges and Continue Watching look lived-in.
+            DemoHistory.Seed(app, playlist.Id);
+
+            // The same comfortable size on any screen: 125%, as on a typical laptop display.
+            shell.SetZoom(TourZoom / VisualTreeHelper.GetDpi(window).DpiScaleX);
+
+            ShowAll(shell, LibrarySection.Movies);
             shell.SetLayout(LayoutMode.Grid);
-            foreach (var item in shell.Content.Items.Take(14).Where((_, i) => i % 4 == 1))
-            {
-                shell.ToggleFavorite(item);
-            }
 
             await Shot("browse-movies.png", 4);
 
@@ -41,7 +45,7 @@ internal static class ScreenshotTour
             await Shot("movie-detail.png", 3);
             shell.Back();
 
-            shell.SelectSection(LibrarySection.Series);
+            ShowAll(shell, LibrarySection.Series);
             shell.SetLayout(LayoutMode.Grid);
             await Shot("browse-series.png", 3);
             shell.Open(shell.Content.Items[4]);
@@ -61,7 +65,7 @@ internal static class ScreenshotTour
             player.ToggleList();
             player.Close();
 
-            shell.SelectSection(LibrarySection.Movies);
+            ShowAll(shell, LibrarySection.Movies);
             shell.Open(shell.Content.Items[12]);
             await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(true);
             ((MovieDetailViewModel)shell.Detail!).PlayCommand.Execute(null);
@@ -86,5 +90,12 @@ internal static class ScreenshotTour
             await app.Playlists.DeleteAsync(playlist.Id).ConfigureAwait(true);
             window.Close();
         }
+    }
+
+    /// <summary>A section's "All" list (with history, Movies and Series would open on Continue Watching).</summary>
+    private static void ShowAll(ShellViewModel shell, LibrarySection section)
+    {
+        shell.SelectSection(section);
+        shell.SelectCategory(shell.Categories.Fixed[0]);
     }
 }

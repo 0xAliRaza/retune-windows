@@ -4,7 +4,7 @@ using Retune.Core.Models;
 
 namespace Retune.App.Dev;
 
-/// <summary>Dev-only: favourites, recent channels and progress on the demo playlist, so Home has rows to show.</summary>
+/// <summary>Dev-only: favourites, recent channels and progress on the demo playlist, so screenshots look lived-in.</summary>
 internal static class DemoHistory
 {
     public static void Seed(AppContainer app, Guid playlistId)

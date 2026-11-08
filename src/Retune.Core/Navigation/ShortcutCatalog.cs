@@ -46,7 +46,6 @@ public static class ShortcutCatalog
 
     public static ShortcutGroup App { get; } = new("App",
     [
-        new(["Alt+Home"], "Home"),
         new(["Ctrl+1", "Ctrl+2", "Ctrl+3"], "Live TV / Movies / Series"),
         new(["Ctrl+Shift+1", "Ctrl+Shift+2", "Ctrl+Shift+3"], "Grid / List / Compact"),
         new(["Ctrl+B"], "Show / hide the sidebar"),

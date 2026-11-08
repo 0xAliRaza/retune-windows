@@ -11,8 +11,6 @@ playback by [mpv](https://mpv.io). Free and open source (GPL-3.0-or-later). No a
 
 ## Features
 
-- **Home**: the landing page with Continue Watching, recently watched channels and your favourite channels, films and
-  series, one click from playing (Alt+Home).
 - **Xtream Codes and M3U** playlists (URL or local file), several playlists side by side, with the provider's
   account status and expiry in the sidebar.
 - **Live TV, Movies and Series** with categories, a category filter, accent-insensitive search, sorting, and
@@ -90,7 +88,7 @@ winget install JRSoftware.InnoSetup --scope user   # once; per-user, no admin ri
 
 | Where | Keys |
 | --- | --- |
-| Anywhere | **Alt+Home** Home · **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
+| Anywhere | **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
 | Browsing | **Tab** next column · **Enter** open or play · **Alt+←**, **Backspace** or the mouse's Back button go back · **Ctrl+Shift+1/2/3** grid / list / compact |
 | Player | **Space** play/pause · **←/→** 10 s (**Shift** 1 min) · **↑/↓** previous/next · **0–9** channel number · **Backspace** last channel · **L** channel list · **M** mute · **−/+** volume · **C** subtitles · **[ ] \\** speed · **I** stats · **S** screenshot · **F** full screen · **Esc** close |
 | Player, mouse | **Click** play/pause · **Double-click** full screen · **Wheel** channels (live) or volume (films) · **Shift + wheel**, or the wheel over the speaker or volume slider, volume · **Middle-click** mute · **Right-click** player menu · **Back button** leave the player |
@@ -128,7 +126,6 @@ to the macOS version.
 - Mouse controls in the player: wheel zaps channels on live TV and sets the volume on films (Shift + wheel is always
   volume), middle-click mutes, right-click player menu (tracks, speed, list, stats, screenshot, shortcuts), mouse Back
   button leaves the player.
-- A Home page (Continue Watching, recently watched channels, favourite channels, films and series) as the landing page.
 - App-wide zoom (Ctrl+Plus/Minus/0, Ctrl + wheel, Settings › Appearance).
 - Collapsible sidebar (Ctrl+B) to an icon rail.
 - Window size, position and maximised state are remembered.
@@ -191,7 +188,7 @@ window.
 
 ## Quality
 
-- **539 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
+- **535 automated tests**: domain logic and edge cases, storage crash-safety and corruption, Credential Manager,
   HTTP limits and timeouts against a local server, view models against an in-process fake provider, and real mpv
   playback of generated media. CI runs them on every push.
 - **Zero analyzer warnings**: `latest-recommended` analysis with warnings as errors.
