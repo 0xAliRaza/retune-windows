@@ -45,7 +45,9 @@ Copy-Item (Join-Path $repoRoot 'THIRD-PARTY-NOTICES.md') $publish
 
 $zip = Join-Path $dist "Retune-$version-win-x64.zip"
 # The Retune folder itself, so extracting creates its own folder: DLLs never land loose in Downloads.
-Compress-Archive -Path $publish -DestinationPath $zip -CompressionLevel Optimal
+# (Compress-Archive in Windows PowerShell writes backslashes in entry names, which the zip format doesn't allow.)
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::CreateFromDirectory($publish, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
 Write-Host "zip        $zip"
 
 $iscc = @(
