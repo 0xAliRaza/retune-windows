@@ -44,7 +44,8 @@ packages include the .NET runtime and libmpv.
 
 ### Installer (recommended)
 
-1. Download `Retune-<version>-setup.exe` and, optionally, `SHA256SUMS.txt`.
+1. Download `Retune-<version>-setup.exe` and, optionally, `SHA256SUMS.txt` from the
+   [latest release](https://github.com/0xAliRaza/retune-windows/releases/latest).
 2. Optional, to check the download: `Get-FileHash .\Retune-<version>-setup.exe -Algorithm SHA256` and compare it
    with the line in `SHA256SUMS.txt`.
 3. Run the installer. It installs for your Windows user only, into `%LOCALAPPDATA%\Programs\Retune`, so it never
@@ -57,7 +58,7 @@ Silent install (for scripts): `Retune-<version>-setup.exe /VERYSILENT /SUPPRESSM
 
 ### Portable zip
 
-Unzip `Retune-<version>-win-x64.zip` anywhere and run `Retune.exe`. Your playlists and settings are still kept in
+Unzip `Retune-<version>-win-x64.zip` (from the same release) anywhere and run `Retune.exe`. Your playlists and settings are still kept in
 your user profile (see [Your data](#your-data)), not next to the exe.
 
 ### Build from source
