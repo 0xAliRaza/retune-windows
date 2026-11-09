@@ -22,7 +22,7 @@ internal static class PlayerPreview
     {
         var engine = new StubEngine();
         using var session = new PlaybackSession(engine, new LibraryPlaybackObserver(app.Library, app.Playlists), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a));
-        using var player = new PlayerViewModel(engine, session, app.Playlists, app.Settings, new StubAwake(), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a), app.Log);
+        using var player = new PlayerViewModel(engine, session, app.Playlists, app.Library, app.Settings, new StubAwake(), app.Time, a => Application.Current.Dispatcher.BeginInvoke(a), app.Log);
         var chrome = new PlayerView { DataContext = player };
         var root = new Grid { Background = FakeVideo() };
         root.Children.Add(chrome);
@@ -33,6 +33,11 @@ internal static class PlayerPreview
         engine.SetTracks([new(1, TrackType.Audio, "eng", null, "aac", 6, true), new(2, TrackType.Audio, "deu", "Commentary", "aac", 2, false), new(3, TrackType.Subtitle, "eng", null, "srt", null, true)]);
         await Snap(root, Path.Combine(folder, "p1-movie.png")).ConfigureAwait(true);
 
+        // The star after adding it to Favorites.
+        player.ToggleFavorite();
+        await Snap(root, Path.Combine(folder, "p1b-favorite.png")).ConfigureAwait(true);
+        player.ToggleFavorite();
+
         // Live with the channel list and stats.
         var channels = Enumerable.Range(1, 12).Select(n => new PlaybackItem($"c{n}", ContentKind.Live, $"{(n % 2 == 0 ? "Vertex" : "Nova")} News {n}", "News", $"http://127.0.0.1:9/live/{n}.ts", StreamId: $"c{n}", Number: n)).ToList();
         player.Play(new Lineup(channels, 3, "News"));
@@ -42,6 +47,21 @@ internal static class PlayerPreview
         await Snap(root, Path.Combine(folder, "p2-live-list-stats.png")).ConfigureAwait(true);
         player.Escape();
         player.Escape();
+
+        // A one-channel list (a single favourite) still has its list.
+        player.Play(new Lineup([channels[3]], 0, "Favorites"));
+        engine.Playing(duration: 0, position: 0, width: 1280, height: 720);
+        player.ToggleList();
+        await Snap(root, Path.Combine(folder, "p2b-one-channel-list.png")).ConfigureAwait(true);
+        player.Escape();
+        player.Play(new Lineup(channels, 3, "News"));
+        engine.Playing(duration: 0, position: 0, width: 1280, height: 720);
+
+        // The mini player (picture in picture) at its real size.
+        player.IsPictureInPicture = true;
+        player.UserActivity();
+        await DevRenderer.Snap(root, Path.Combine(folder, "p6-mini-player.png"), new Size(PictureInPicture.Width, PictureInPicture.Width * 9 / 16), 600).ConfigureAwait(true);
+        player.IsPictureInPicture = false;
 
         // The shortcuts panel over the video.
         player.ToggleShortcuts();

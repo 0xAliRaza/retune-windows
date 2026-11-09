@@ -86,6 +86,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
         set => _settings.Update(s => s with { AutoplayNext = value });
     }
 
+    public bool AutoPictureInPicture
+    {
+        get => _settings.Current.AutoPictureInPicture;
+        set => _settings.Update(s => s with { AutoPictureInPicture = value });
+    }
+
     public bool AllowUnverifiedHttps
     {
         get => _settings.Current.AllowUnverifiedHttps;
@@ -186,6 +192,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(SelectedLiveFormat));
         OnPropertyChanged(nameof(AutoplayNext));
+        OnPropertyChanged(nameof(AutoPictureInPicture));
         OnPropertyChanged(nameof(AllowUnverifiedHttps));
         OnPropertyChanged(nameof(SelectedZoom));
     }

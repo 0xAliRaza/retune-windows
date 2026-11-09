@@ -27,6 +27,7 @@ public static class ShortcutCatalog
         new(["M"], "Mute"),
         new(["C"], "Subtitles on / off"),
         new(["F", "F11"], "Full screen"),
+        new(["P"], "Picture in picture"),
         new(["I"], "Stream info"),
         new(["S"], "Save a screenshot"),
         new(["Esc"], "Close panel / leave the player"),

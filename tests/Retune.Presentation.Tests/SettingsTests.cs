@@ -41,10 +41,13 @@ public sealed class SettingsTests : IAsyncLifetime
         Page.AutoplayNext = false;
         Assert.False(Page.AllowUnverifiedHttps);
         Page.AllowUnverifiedHttps = true;
+        Assert.True(Page.AutoPictureInPicture);
+        Page.AutoPictureInPicture = false;
 
         Assert.Equal(LiveFormat.Hls, _app.Settings.Saved.LiveFormat);
         Assert.False(_app.Settings.Saved.AutoplayNext);
         Assert.True(_app.Settings.Saved.AllowUnverifiedHttps);
+        Assert.False(_app.Settings.Saved.AutoPictureInPicture);
         Assert.Equal(LiveFormat.Hls, Page.SelectedLiveFormat.Format);
     }
 

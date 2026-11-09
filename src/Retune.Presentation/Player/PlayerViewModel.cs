@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Retune.Core.Diagnostics;
 using Retune.Core.Errors;
 using Retune.Core.Formatting;
+using Retune.Core.Library;
 using Retune.Core.Models;
 using Retune.Core.Playback;
 using Retune.Core.Search;
@@ -38,6 +39,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     private readonly IPlayerEngine _engine;
     private readonly PlaybackSession _session;
     private readonly PlaylistController _playlists;
+    private readonly LibraryService _library;
     private readonly SettingsService _settings;
     private readonly IKeepAwake _keepAwake;
     private readonly TimeProvider _time;
@@ -55,8 +57,9 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     private PlaybackItem? _shownItem;
     private PlaybackItem? _guideLoadedFor;
 
-    public PlayerViewModel(IPlayerEngine engine, PlaybackSession session, PlaylistController playlists, SettingsService settings, IKeepAwake keepAwake, TimeProvider time, Action<Action> post, IAppLog log)
+    public PlayerViewModel(IPlayerEngine engine, PlaybackSession session, PlaylistController playlists, LibraryService library, SettingsService settings, IKeepAwake keepAwake, TimeProvider time, Action<Action> post, IAppLog log)
     {
+        _library = library ?? throw new ArgumentNullException(nameof(library));
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _playlists = playlists;
@@ -74,6 +77,7 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _engine.ApplySubtitleStyle(SubtitleStyle);
 
         _settings.Changed += OnSettingsChanged;
+        _library.Changed += OnLibraryChanged;
         _session.StateChanged += (_, _) => OnStateChanged();
         _engine.EventRaised += OnEngineEvent;
         _statsTimer = time.CreateTimer(_ => _post(RefreshStats), null, StatsInterval, StatsInterval);
@@ -87,6 +91,25 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
 
     /// <summary>The player closed: the view leaves full screen (if it entered it) and refocuses browse.</summary>
     public event EventHandler? Closed;
+
+    /// <summary>P, the bottom-bar button or the mini window's buttons: the view owns the window.</summary>
+    public event EventHandler? PictureInPictureToggleRequested;
+
+    /// <summary>The window is the small always-on-top player; set by the view, which owns the window.</summary>
+    [ObservableProperty]
+    public partial bool IsPictureInPicture { get; set; }
+
+    /// <summary>Switching to another app while something plays opens the mini window (a setting).</summary>
+    public bool AutoPictureInPicture => _settings.Current.AutoPictureInPicture;
+
+    /// <summary>The star in the top bar: there is something it can favourite (episodes favourite their series).</summary>
+    public bool CanFavorite => FavoriteKey is not null;
+
+    public bool IsFavorite => FavoriteKey is { } key && _library.State.IsFavorite(key);
+
+    private string? FavoriteKey => IsPresented && State.Item is { } item && _playlists.Active is { } playlist
+        ? LibraryKeys.FavoriteFor(playlist.Id, item)
+        : null;
 
     public PlaybackState State => _session.State;
 
@@ -187,7 +210,11 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
 
     public bool HasAudioChoice => AudioTracks.Count > 1;
 
-    public bool HasList => State.Count > 1;
+    /// <summary>
+    /// The list button and L. Live always has the channel list, even with one channel (a hidden button looked like a
+    /// missing feature); on-demand only when something else is queued.
+    /// </summary>
+    public bool HasList => State.Count > 1 || (State.IsLive && State.Count > 0);
 
     public bool ShowsTuning => State.Phase is PlaybackPhase.Tuning or PlaybackPhase.Reconnecting && !State.HasVideoFrame;
 
@@ -476,6 +503,32 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
     public void ToggleFullScreen() => FullScreenToggleRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
+    public void TogglePictureInPicture() => PictureInPictureToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    public void ToggleAutoPictureInPicture()
+    {
+        var on = !AutoPictureInPicture;
+        _settings.Update(s => s with { AutoPictureInPicture = on });
+        Flash(on ? "Picture in picture when switching apps: on" : "Picture in picture when switching apps: off");
+    }
+
+    /// <summary>The star: adds or removes the channel, movie or (for an episode) series from Favorites.</summary>
+    [RelayCommand]
+    public void ToggleFavorite()
+    {
+        if (FavoriteKey is not { } key)
+        {
+            return;
+        }
+
+        var adding = !_library.State.IsFavorite(key);
+        _library.Update(s => s.ToggleFavorite(key));
+        Flash(adding ? "Added to Favorites" : "Removed from Favorites");
+        UserActivity();
+    }
+
+    [RelayCommand]
     public void Retry() => _session.Retry();
 
     [RelayCommand]
@@ -567,12 +620,25 @@ public sealed partial class PlayerViewModel : ObservableObject, IPlayerLauncher,
         _epg?.Dispose();
         _engine.EventRaised -= OnEngineEvent;
         _settings.Changed -= OnSettingsChanged;
+        _library.Changed -= OnLibraryChanged;
     }
 
     private void OnSettingsChanged(object? sender, EventArgs e)
     {
         _session.AutoplayEnabled = _settings.Current.AutoplayNext;
         _engine.SetVerifyCertificates(!_settings.Current.AllowUnverifiedHttps);
+        OnPropertyChanged(nameof(AutoPictureInPicture));
+    }
+
+    private void OnLibraryChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(IsFavorite));
+
+    /// <summary>The mini window has no room for panels.</summary>
+    partial void OnIsPictureInPictureChanged(bool value)
+    {
+        if (value)
+        {
+            ListVisible = StatsVisible = ShortcutsVisible = false;
+        }
     }
 
     partial void OnListFilterChanged(string value) => RebuildList();

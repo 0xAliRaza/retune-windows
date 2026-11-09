@@ -32,6 +32,8 @@ public sealed class FileAppLog : IAppLog
 
     public void Failure(string area, string message, Exception? exception = null) => Write("ERROR", area, message, exception);
 
+    public void Info(string area, string message) => Write("INFO", area, message, null);
+
     private void Write(string level, string area, string message, Exception? exception)
     {
         var line = new StringBuilder()

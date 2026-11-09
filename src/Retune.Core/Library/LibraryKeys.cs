@@ -22,6 +22,21 @@ public static class LibraryKeys
         return Content(playlistId, item.Kind, item.Kind == ContentKind.Live ? item.StreamId ?? item.Id : item.Id);
     }
 
+    /// <summary>
+    /// The favourite the player's star toggles: the channel or movie itself, or the series an episode belongs to
+    /// (episodes aren't favourites on their own). Null when an episode doesn't know its series.
+    /// </summary>
+    public static string? FavoriteFor(Guid playlistId, PlaybackItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.Kind switch
+        {
+            ContentKind.Episode => item.ParentId is { } series ? Content(playlistId, ContentKind.Series, series) : null,
+            ContentKind.Series => null,
+            _ => For(playlistId, item),
+        };
+    }
+
     /// <summary>"&lt;UUID&gt;/category/&lt;kind&gt;/".</summary>
     public static string CategoryPrefix(Guid playlistId, LibrarySection section) =>
         $"{PlaylistPrefix(playlistId)}category/{section.ToContentKind().ToKey()}/";

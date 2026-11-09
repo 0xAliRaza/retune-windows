@@ -38,4 +38,25 @@ public sealed class LibraryKeysTests
         Assert.Equal(["1", "2"], LibraryKeys.CategoryIds(keys, Playlist, LibrarySection.Live));
         Assert.Equal(["3"], LibraryKeys.CategoryIds(keys, Playlist, LibrarySection.Movies));
     }
+
+    [Fact]
+    public void The_players_star_favourites_the_channel_the_movie_or_the_episodes_series()
+    {
+        var channel = new PlaybackItem("ch-1", ContentKind.Live, "News", null, "u", StreamId: "42");
+        var movie = new PlaybackItem("7", ContentKind.Movie, "Film", null, "u");
+        var episode = new PlaybackItem("e9", ContentKind.Episode, "Show", "S1 E2", "u", ParentId: "s3");
+
+        Assert.Equal(LibraryKeys.Content(Playlist, ContentKind.Live, "42"), LibraryKeys.FavoriteFor(Playlist, channel));
+        Assert.Equal(LibraryKeys.Content(Playlist, ContentKind.Movie, "7"), LibraryKeys.FavoriteFor(Playlist, movie));
+        Assert.Equal(LibraryKeys.Content(Playlist, ContentKind.Series, "s3"), LibraryKeys.FavoriteFor(Playlist, episode));
+    }
+
+    [Fact]
+    public void An_episode_without_its_series_has_nothing_to_favourite()
+    {
+        var orphan = new PlaybackItem("e9", ContentKind.Episode, "Show", "S1 E2", "u");
+
+        Assert.Null(LibraryKeys.FavoriteFor(Playlist, orphan));
+        Assert.Throws<ArgumentNullException>(() => LibraryKeys.FavoriteFor(Playlist, null!));
+    }
 }

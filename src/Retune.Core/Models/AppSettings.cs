@@ -21,6 +21,9 @@ public sealed record AppSettings
 
     public bool AutoplayNext { get; init; } = true;
 
+    /// <summary>Switching to another app while something plays shrinks the player into an always-on-top mini window.</summary>
+    public bool AutoPictureInPicture { get; init; } = true;
+
     /// <summary>Play HTTPS streams whose certificate can't be verified (some providers use self-signed ones). Off by default.</summary>
     public bool AllowUnverifiedHttps { get; init; }
 

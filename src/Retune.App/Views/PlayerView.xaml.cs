@@ -2,8 +2,10 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Retune.App.Video;
+using Retune.App.Windowing;
 using Retune.Core.Playback;
 using Retune.Presentation.Player;
 using Wpf.Ui.Controls;
@@ -24,6 +26,7 @@ public partial class PlayerView : UserControl
     private bool _scrubbing;
     private double _scrubFrom;
     private bool _syncingVolume;
+    private WindowDrag? _drag;
 
     public PlayerView()
     {
@@ -89,6 +92,10 @@ public partial class PlayerView : UserControl
         }
 
         PlayIcon.Symbol = p.State.Paused || p.State.Phase == PlaybackPhase.Ended ? SymbolRegular.Play24 : SymbolRegular.Pause24;
+        MiniPlayIcon.Symbol = PlayIcon.Symbol;
+        FavoriteIcon.Filled = p.IsFavorite;
+        FavoriteIcon.Foreground = p.IsFavorite ? (Brush)FindResource("RatingBrush") : Brushes.White;
+        FavoriteButton.ToolTip = p.IsFavorite ? "Remove from Favorites" : "Add to Favorites";
         VolumeIcon.Symbol = p.Muted ? SymbolRegular.SpeakerMute24 : p.Volume < 50 ? SymbolRegular.Speaker124 : SymbolRegular.Speaker224;
         SubtitleIcon.Filled = p.SubtitlesOn;
         Cursor = p.ControlsVisible ? null : Cursors.None;
@@ -102,9 +109,33 @@ public partial class PlayerView : UserControl
         _syncingVolume = false;
     }
 
-    private void OnActivity(object sender, MouseEventArgs e) => _player?.UserActivity();
+    private void OnActivity(object sender, MouseEventArgs e)
+    {
+        _player?.UserActivity();
+        if (_drag is not null && e.LeftButton == MouseButtonState.Pressed)
+        {
+            _drag.Follow();
+            if (_drag.Moved)
+            {
+                _singleClick.Stop(); // a move, not a click
+            }
+        }
+    }
 
-    /// <summary>One click on the bare video pauses (after the double-click window); a double click toggles full screen.</summary>
+    /// <summary>The end of a press on the mini player: stop following the pointer.</summary>
+    private void OnSurfaceRelease(object sender, MouseEventArgs e)
+    {
+        if (_drag is not null)
+        {
+            _drag = null;
+            Surface.ReleaseMouseCapture();
+        }
+    }
+
+    /// <summary>
+    /// One click on the bare video pauses (after the double-click window); a double click toggles full screen, or in the
+    /// mini player goes back to the full player. A press on the mini player can also drag it around.
+    /// </summary>
     private void OnSurfaceClick(object sender, MouseButtonEventArgs e)
     {
         _player?.UserActivity();
@@ -113,14 +144,27 @@ public partial class PlayerView : UserControl
             return;
         }
 
+        var mini = _player?.IsPictureInPicture == true;
         if (e.ClickCount == 2)
         {
             _singleClick.Stop();
-            _player?.ToggleFullScreen();
+            if (mini)
+            {
+                _player!.TogglePictureInPicture();
+            }
+            else
+            {
+                _player?.ToggleFullScreen();
+            }
         }
         else
         {
             _singleClick.Start();
+            if (mini && Host is not null && Window.GetWindow(Host) is { } window)
+            {
+                _drag = WindowDrag.Begin(window, System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX);
+                Surface.CaptureMouse();
+            }
         }
     }
 
@@ -224,6 +268,11 @@ public partial class PlayerView : UserControl
             Item(p.Muted ? "Unmute" : "Mute", p.ToggleMute, "M"),
         };
 
+        if (p.CanFavorite)
+        {
+            items.Insert(3, Item(p.IsFavorite ? "Remove from Favorites" : "Add to Favorites", p.ToggleFavorite, string.Empty));
+        }
+
         if (p.HasAudioChoice)
         {
             items.Add(Submenu("Audio", AudioItems(p)));
@@ -246,6 +295,8 @@ public partial class PlayerView : UserControl
         }
 
         items.Add(Item("Full screen", p.ToggleFullScreen, "F"));
+        items.Add(Item(p.IsPictureInPicture ? "Back to the full player" : "Picture in picture", p.TogglePictureInPicture, "P"));
+        items.Add(new System.Windows.Controls.MenuItem { Header = "Picture in picture when switching apps", IsCheckable = true, IsChecked = p.AutoPictureInPicture, Command = p.ToggleAutoPictureInPictureCommand });
         items.Add(Item("Stream info", p.ToggleStats, "I"));
         items.Add(Item("Save a screenshot", () => _ = p.ScreenshotAsync(), "S"));
         items.Add(Item("Keyboard shortcuts", p.ToggleShortcuts, "?"));

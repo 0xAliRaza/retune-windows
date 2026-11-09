@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using System.Windows.Interop;
 using Retune.App.Composition;
 using Retune.App.Interop;
@@ -22,11 +24,15 @@ public partial class MainWindow : FluentWindow
 {
     private readonly DialogLayer _dialogs;
     private readonly FullScreenController _fullScreen;
+    private readonly PictureInPictureController _pip;
     private PlayerViewModel? _player;
     private SystemMediaControls? _mediaControls;
     private bool _preparedForExit;
     private readonly ScaleTransform _zoom = new();
     private bool _playerEnteredFullScreen;
+
+    /// <summary>The mini player opened because the user switched apps, so coming back closes it again.</summary>
+    private bool _pipOpenedBySwitch;
 
     public MainWindow(AppContainer container)
     {
@@ -36,8 +42,21 @@ public partial class MainWindow : FluentWindow
         DataContext = container.Shell;
         _dialogs = new DialogLayer(DialogLayer, DialogHost);
         container.Dialogs.Presenter = _dialogs;
-        _fullScreen = new FullScreenController(this);
-        _fullScreen.Changed += (_, _) => AppTitleBar.Visibility = _fullScreen.IsFullScreen ? Visibility.Collapsed : Visibility.Visible;
+        var edge = new WindowEdge(this);
+        _fullScreen = new FullScreenController(this, edge);
+        _pip = new PictureInPictureController(this, edge);
+        _fullScreen.Changed += (_, _) => UpdateTitleBar();
+        _pip.Changed += (_, _) =>
+        {
+            UpdateTitleBar();
+            if (_player is not null)
+            {
+                _player.IsPictureInPicture = _pip.IsActive;
+            }
+        };
+        Activated += OnActivated;
+        Deactivated += OnDeactivated;
+        SourceInitialized += (_, _) => HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(OnAppSwitch);
         PlayerChrome.Host = Overlay;
         PlayerLayer.Visibility = Visibility.Visible; // so the video window is created at startup; hidden once it exists
         Video.VideoWindowCreated += OnVideoWindowCreated;
@@ -114,6 +133,7 @@ public partial class MainWindow : FluentWindow
     /// <summary>The normal bounds and maximised state to reopen with (full screen is left first, so it counts as what it replaced).</summary>
     private WindowPlacement? CurrentPlacement()
     {
+        ExitPictureInPicture();
         if (_fullScreen.IsFullScreen)
         {
             _fullScreen.Exit();
@@ -150,11 +170,15 @@ public partial class MainWindow : FluentWindow
             }
         };
         _player.FullScreenToggleRequested += (_, _) => ToggleFullScreen();
+        _player.PictureInPictureToggleRequested += (_, _) => TogglePictureInPicture();
         _player.Closed += (_, _) =>
         {
+            // Closed from the mini player while the user works elsewhere: to the taskbar, not over their app.
+            var outOfTheWay = _pip.IsActive && !IsActive;
+            ExitPictureInPicture(minimized: outOfTheWay);
             if (_playerEnteredFullScreen)
             {
-                _fullScreen.Exit();
+                _fullScreen.Exit(minimized: outOfTheWay);
                 _playerEnteredFullScreen = false;
             }
 
@@ -176,6 +200,20 @@ public partial class MainWindow : FluentWindow
 
     private void ToggleFullScreen()
     {
+        if (_pip.IsActive)
+        {
+            // From the mini player, F (or the full screen button) goes straight to full screen.
+            ExitPictureInPicture();
+            Activate();
+            if (!_fullScreen.IsFullScreen)
+            {
+                _fullScreen.Enter();
+                _playerEnteredFullScreen = true;
+            }
+
+            return;
+        }
+
         if (_fullScreen.IsFullScreen)
         {
             _fullScreen.Exit();
@@ -185,6 +223,109 @@ public partial class MainWindow : FluentWindow
         {
             _fullScreen.Enter();
             _playerEnteredFullScreen = _player?.IsPresented == true;
+        }
+    }
+
+    private void UpdateTitleBar() =>
+        AppTitleBar.Visibility = _fullScreen.IsFullScreen || _pip.IsActive ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>P, the player's button or the mini window's "back" button.</summary>
+    private void TogglePictureInPicture()
+    {
+        if (_pip.IsActive)
+        {
+            ExitPictureInPicture();
+            Activate();
+        }
+        else
+        {
+            EnterPictureInPicture(bySwitch: false);
+        }
+    }
+
+    private void EnterPictureInPicture(bool bySwitch)
+    {
+        if (_player?.IsPresented != true || _pip.IsActive)
+        {
+            return;
+        }
+
+        _pip.Enter();
+        _pipOpenedBySwitch = bySwitch && _pip.IsActive;
+        Container.Log.Info("pip", $"opened (by switching={bySwitch}): {_pip.IsActive}");
+    }
+
+    /// <summary>Back to the window as it was (full screen included), or to the taskbar.</summary>
+    private void ExitPictureInPicture(bool minimized = false)
+    {
+        if (_pip.IsActive)
+        {
+            Container.Log.Info("pip", $"closed (to taskbar={minimized})");
+        }
+
+        _pipOpenedBySwitch = false;
+        _pip.Exit(minimized);
+    }
+
+    /// <summary>
+    /// The user switched to another app: keep the video in view in the mini player. Decided a moment later, once
+    /// Windows has finished minimising the window if that is what took the focus away.
+    /// </summary>
+    private void OnDeactivated(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Background, DecideOnSwitchAway);
+
+    private void DecideOnSwitchAway()
+    {
+        if (_player is not { } p)
+        {
+            return;
+        }
+
+        var minimized = WindowState == WindowState.Minimized || NativeMethods.IsIconic(new WindowInteropHelper(this).Handle);
+        var paused = p.State.Paused || p.State.Phase is Core.Playback.PlaybackPhase.Ended or Core.Playback.PlaybackPhase.Failed;
+        var inFront = NativeMethods.IsThisAppInFront();
+        var opens = !inFront && !_dialogs.IsOpen && PictureInPicture.OpensOnSwitchAway(p.AutoPictureInPicture, p.IsPresented, paused, minimized, _pip.IsActive);
+        if (p.IsPresented)
+        {
+            Container.Log.Info("pip", string.Create(CultureInfo.InvariantCulture, $"switched away: inFront={inFront} setting={p.AutoPictureInPicture} paused={paused} minimized={minimized} dialog={_dialogs.IsOpen} mini={_pip.IsActive} full={_fullScreen.IsFullScreen} -> {(opens ? "open" : "stay")}"));
+        }
+
+        if (opens)
+        {
+            EnterPictureInPicture(bySwitch: true);
+        }
+    }
+
+    private void OnActivated(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Background, OnCameBack);
+
+    /// <summary>
+    /// Windows' app-level switch notice, besides WPF's per-window events: Retune as a whole lost or regained the
+    /// front. Either may arrive alone or twice; both decisions check who is really in front, so repeats do nothing.
+    /// </summary>
+    private nint OnAppSwitch(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (msg == NativeMethods.WmActivateApp)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, wParam != 0 ? OnCameBack : DecideOnSwitchAway);
+        }
+
+        return 0;
+    }
+
+    /// <summary>Coming back to Retune (Alt+Tab, the taskbar) closes a mini player that switching away opened.</summary>
+    private void OnCameBack()
+    {
+        if (!_pip.IsActive)
+        {
+            return;
+        }
+
+        // Only a real return counts: WPF also reports activations while another app is in front.
+        var inFront = NativeMethods.IsThisAppInFront();
+        var closes = inFront && _pipOpenedBySwitch;
+        Container.Log.Info("pip", $"activated: inFront={inFront} opened by switching={_pipOpenedBySwitch} -> {(closes ? "close" : "stay")}");
+        if (closes)
+        {
+            ExitPictureInPicture();
         }
     }
 
@@ -252,6 +393,8 @@ public partial class MainWindow : FluentWindow
             case Key.OemQuestion when shift:
                 p.ToggleShortcuts();
                 break;
+            case Key.P: TogglePictureInPicture(); break;
+            case Key.Escape when _pip.IsActive: ExitPictureInPicture(); break;
             case Key.Escape: p.Escape(); break;
             case >= Key.D0 and <= Key.D9 when !shift: p.Digit(key - Key.D0); break;
             case >= Key.NumPad0 and <= Key.NumPad9: p.Digit(key - Key.NumPad0); break;

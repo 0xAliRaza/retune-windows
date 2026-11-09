@@ -21,7 +21,7 @@ public sealed class PlayerTests : IAsyncLifetime
         _playlist = await _app.AddDemoAsync();
         _engine = new FakeEngine();
         _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(_app.Library, _app.Controller), _app.Time, a => a());
-        _player = new PlayerViewModel(_engine, _session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
+        _player = new PlayerViewModel(_engine, _session, _app.Controller, _app.Library, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
     }
 
     public async ValueTask DisposeAsync()
@@ -80,6 +80,113 @@ public sealed class PlayerTests : IAsyncLifetime
         _player.Play(Channels());
 
         Assert.Equal(["c1"], _app.Library.State.RecentChannelIds(_playlist.Id));
+    }
+
+    [Fact]
+    public void The_star_adds_and_removes_the_playing_channel_from_favorites()
+    {
+        Assert.False(_player.CanFavorite);
+        _player.Play(Channels());
+        FirstFrame();
+        var key = LibraryKeys.Content(_playlist.Id, ContentKind.Live, "c1");
+
+        Assert.True(_player.CanFavorite);
+        Assert.False(_player.IsFavorite);
+
+        _player.ToggleFavorite();
+        Assert.True(_app.Library.State.IsFavorite(key));
+        Assert.True(_player.IsFavorite);
+        Assert.Equal("Added to Favorites", _player.FlashText);
+
+        _player.ToggleFavorite();
+        Assert.False(_app.Library.State.IsFavorite(key));
+        Assert.Equal("Removed from Favorites", _player.FlashText);
+    }
+
+    [Fact]
+    public void The_star_follows_the_channel_and_changes_made_elsewhere()
+    {
+        _player.Play(Channels());
+        FirstFrame();
+        var changes = new List<string?>();
+        _player.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+
+        _app.Library.Update(s => s.ToggleFavorite(LibraryKeys.Content(_playlist.Id, ContentKind.Live, "c2")));
+        Assert.Contains(nameof(PlayerViewModel.IsFavorite), changes);
+        Assert.False(_player.IsFavorite);
+
+        _player.Next();
+        Assert.True(_player.IsFavorite);
+    }
+
+    [Fact]
+    public void A_one_channel_list_still_has_its_list_with_that_channel()
+    {
+        var only = Channels().Items[0];
+        _player.Play(new Lineup([only], 0, "Favorites"));
+
+        Assert.True(_player.HasList);
+        _player.ToggleList();
+
+        Assert.True(_player.ListVisible);
+        Assert.Equal("Favorites", _player.State.LineupTitle);
+        var row = Assert.Single(_player.ListRows);
+        Assert.Same(only, row.Item);
+        Assert.True(row.IsCurrent);
+    }
+
+    [Fact]
+    public void A_single_movie_has_no_up_next_list()
+    {
+        _player.Play(Movie());
+
+        Assert.False(_player.HasList);
+        _player.ToggleList();
+        Assert.False(_player.ListVisible);
+    }
+
+    [Fact]
+    public void Watching_an_episode_the_star_favourites_its_series()
+    {
+        _player.Play(new Lineup([new PlaybackItem("e1", ContentKind.Episode, "Show", "S1 E1 · Pilot", $"{_app.Provider.BaseUrl}/series/demo/demo/1.mp4", ParentId: "s7")], 0, "Show"));
+
+        _player.ToggleFavorite();
+
+        Assert.True(_app.Library.State.IsFavorite(LibraryKeys.Content(_playlist.Id, ContentKind.Series, "s7")));
+        Assert.True(_player.IsFavorite);
+    }
+
+    [Fact]
+    public void Picture_in_picture_is_asked_of_the_window_and_hides_the_panels()
+    {
+        var requests = 0;
+        _player.PictureInPictureToggleRequested += (_, _) => requests++;
+        _player.Play(Channels());
+        _player.ToggleList();
+        _player.ToggleStats();
+
+        _player.TogglePictureInPicture();
+        Assert.Equal(1, requests);
+
+        _player.IsPictureInPicture = true; // what the window does once it is small
+        Assert.False(_player.ListVisible);
+        Assert.False(_player.StatsVisible);
+        Assert.False(_player.ShortcutsVisible);
+    }
+
+    [Fact]
+    public void Picture_in_picture_on_switching_apps_can_be_turned_off_from_the_player()
+    {
+        Assert.True(_player.AutoPictureInPicture);
+
+        _player.ToggleAutoPictureInPicture();
+
+        Assert.False(_player.AutoPictureInPicture);
+        Assert.False(_app.SettingsService.Current.AutoPictureInPicture);
+        Assert.Equal("Picture in picture when switching apps: off", _player.FlashText);
+
+        _app.SettingsService.Update(s => s with { AutoPictureInPicture = true });
+        Assert.True(_player.AutoPictureInPicture);
     }
 
     [Fact]
@@ -219,7 +326,7 @@ public sealed class PlayerTests : IAsyncLifetime
         _app.Settings.Save(AppSettings.Default with { Volume = 80 });
 
         using var session = new PlaybackSession(engine, new LibraryPlaybackObserver(_app.Library, _app.Controller), _app.Time, a => a());
-        using var player = new PlayerViewModel(engine, session, _app.Controller, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
+        using var player = new PlayerViewModel(engine, session, _app.Controller, _app.Library, _app.SettingsService, _awake, _app.Time, a => a(), _app.Log);
 
         Assert.True(engine.Muted);
     }

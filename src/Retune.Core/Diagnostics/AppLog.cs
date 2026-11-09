@@ -11,6 +11,11 @@ public interface IAppLog
     void Warning(string area, string message, Exception? exception = null);
 
     void Failure(string area, string message, Exception? exception = null);
+
+    /// <summary>A routine event worth having when diagnosing a report. Discarded unless the log keeps them.</summary>
+    void Info(string area, string message)
+    {
+    }
 }
 
 /// <summary>Discards everything (tests and tools that don't care).</summary>

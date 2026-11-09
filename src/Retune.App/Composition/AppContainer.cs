@@ -143,7 +143,7 @@ public sealed class AppContainer : IDisposable
         };
         _engine = new MpvEngine(_mpv, Post);
         _session = new PlaybackSession(_engine, new LibraryPlaybackObserver(Library, Playlists), Time, Post);
-        PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Settings, new KeepAwake(), Time, Post, Log);
+        PlayerModel = new PlayerViewModel(_engine, _session, Playlists, Library, Settings, new KeepAwake(), Time, Post, Log);
         Player.Attach(PlayerModel);
         if (Player.LastRequest is { } pending)
         {

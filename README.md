@@ -91,7 +91,7 @@ winget install JRSoftware.InnoSetup --scope user   # once; per-user, no admin ri
 | --- | --- |
 | Anywhere | **Ctrl+1/2/3** Live TV / Movies / Series · **Ctrl+F** search · **Ctrl+N** add playlist · **Ctrl+R** or **F5** refresh · **Ctrl+,** settings · **Ctrl+L** lock categories again · **Ctrl+B** sidebar · **Ctrl+Plus/Minus/0** zoom (or Ctrl + wheel) · **F11** full screen · **F1** shortcuts |
 | Browsing | **Tab** next column · **Enter** open or play · **Alt+←**, **Backspace** or the mouse's Back button go back · **Ctrl+Shift+1/2/3** grid / list / compact |
-| Player | **Space** play/pause · **←/→** 10 s (**Shift** 1 min) · **↑/↓** previous/next · **0–9** channel number · **Backspace** last channel · **L** channel list · **M** mute · **−/+** volume · **C** subtitles · **[ ] \\** speed · **I** stats · **S** screenshot · **F** full screen · **Esc** close |
+| Player | **Space** play/pause · **←/→** 10 s (**Shift** 1 min) · **↑/↓** previous/next · **0–9** channel number · **Backspace** last channel · **L** channel list · **M** mute · **−/+** volume · **C** subtitles · **[ ] \\** speed · **I** stats · **S** screenshot · **F** full screen · **P** picture-in-picture · **Esc** close |
 | Player, mouse | **Click** play/pause · **Double-click** full screen · **Wheel** channels (live) or volume (films) · **Shift + wheel**, or the wheel over the speaker or volume slider, volume · **Middle-click** mute · **Right-click** player menu · **Back button** leave the player |
 
 Settings (the gear at the bottom of the sidebar) cover zoom, the live stream format (Automatic shows what it picks for
@@ -163,15 +163,14 @@ Planned, roughly in order. Nothing here is promised by a date.
    certificate; until then builds are unsigned (see [Install](#install)).
 3. **A full TV guide**: a schedule grid for live channels from the provider's EPG, beyond today's now/next line.
 4. **Catch-up (timeshift)** on live channels whose provider offers it: watch what aired earlier.
-5. **Picture-in-picture**: a small always-on-top player while you browse or work.
-6. **In-app updates** from GitHub Releases, verified against published checksums.
-7. **A smaller download**: about 50 MB of the package is a Windows component used only for the media keys and
+5. **In-app updates** from GitHub Releases, verified against published checksums.
+6. **A smaller download**: about 50 MB of the package is a Windows component used only for the media keys and
    flyout; projecting just the part Retune uses removes most of it.
-8. **Smoother grid scrolling at very large sizes** (60,000+ posters): recycle tiles instead of rebuilding rows.
-9. **1.0 release**: a 4-hour playback soak test (a 1-hour one passes today), a final review, version 1.0.
-10. **Hardening**: keep artwork requests off your local network, restrict which protocols streams may use inside
+7. **Smoother grid scrolling at very large sizes** (60,000+ posters): recycle tiles instead of rebuilding rows.
+8. **1.0 release**: a 4-hour playback soak test (a 1-hour one passes today), a final review, version 1.0.
+9. **Hardening**: keep artwork requests off your local network, restrict which protocols streams may use inside
     HLS/DASH, limit concurrent artwork downloads, and clean up very old history entries saved before locators.
-11. **Linux**: a version for Ubuntu and other distributions, sharing the .NET core and view models with an Avalonia
+10. **Linux**: a version for Ubuntu and other distributions, sharing the .NET core and view models with an Avalonia
     interface, libmpv in an OpenGL view, the desktop keyring for passwords and MPRIS for media keys.
 ## How it's built
 

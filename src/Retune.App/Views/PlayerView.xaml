@@ -17,13 +17,14 @@
       <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}" />
       <Setter Property="Focusable" Value="False" />
       <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="White" />
       <Setter Property="Width" Value="38" />
       <Setter Property="Height" Value="38" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Back" Background="Transparent" CornerRadius="19">
+            <Border x:Name="Back" Background="{TemplateBinding Background}" CornerRadius="19">
               <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <ControlTemplate.Triggers>
@@ -52,7 +53,7 @@
   </UserControl.Resources>
 
   <!-- Alpha-1 background: invisible, but the whole surface receives the mouse. -->
-  <Grid x:Name="Surface" Background="#01000000" MouseMove="OnActivity" MouseLeftButtonDown="OnSurfaceClick" MouseWheel="OnSurfaceWheel" MouseDown="OnSurfaceButton" MouseRightButtonUp="OnSurfaceMenu">
+  <Grid x:Name="Surface" Background="#01000000" MouseMove="OnActivity" MouseLeftButtonDown="OnSurfaceClick" MouseWheel="OnSurfaceWheel" MouseDown="OnSurfaceButton" MouseRightButtonUp="OnSurfaceMenu" MouseLeftButtonUp="OnSurfaceRelease" LostMouseCapture="OnSurfaceRelease">
 
     <!-- ================================ tuning card -->
     <Grid Visibility="{Binding ShowsTuning, Converter={StaticResource BoolToVisibility}}" Background="#E0000000">
@@ -93,7 +94,7 @@
     </Border>
 
     <!-- ================================ top bar -->
-    <Grid x:Name="TopBar" VerticalAlignment="Top" Style="{StaticResource Chrome}">
+    <Grid x:Name="TopBar" VerticalAlignment="Top" Style="{StaticResource Chrome}" Visibility="{Binding IsPictureInPicture, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
       <Grid.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
           <GradientStop Offset="0" Color="#C0000000" />
@@ -102,6 +103,9 @@
       </Grid.Background>
       <DockPanel Margin="24,22,20,44">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button x:Name="FavoriteButton" Style="{StaticResource PlayerButton}" Margin="0,0,6,0" Command="{Binding ToggleFavoriteCommand}" ToolTip="Add to Favorites" Visibility="{Binding CanFavorite, Converter={StaticResource BoolToVisibility}}">
+            <ui:SymbolIcon x:Name="FavoriteIcon" Symbol="Star24" FontSize="20" />
+          </Button>
           <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleListCommand}" ToolTip="Channel list (L)" Visibility="{Binding HasList, Converter={StaticResource BoolToVisibility}}">
             <ui:SymbolIcon Symbol="TextBulletListLtr24" FontSize="20" />
           </Button>
@@ -133,7 +137,7 @@
     </Grid>
 
     <!-- ================================ bottom bar -->
-    <Border x:Name="BottomBar" Margin="24,0,24,24" Padding="18,12,18,10" VerticalAlignment="Bottom" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="18" Style="{StaticResource Chrome}">
+    <Border x:Name="BottomBar" Margin="24,0,24,24" Padding="18,12,18,10" VerticalAlignment="Bottom" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="18" Style="{StaticResource Chrome}" Visibility="{Binding IsPictureInPicture, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
       <StackPanel>
         <DockPanel Margin="0,0,0,6" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}">
           <TextBlock DockPanel.Dock="Left" MinWidth="56" FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="#E6FFFFFF" Text="{Binding PositionText}" VerticalAlignment="Center" />
@@ -162,12 +166,39 @@
             <Button x:Name="SubtitleButton" Style="{StaticResource PlayerButton}" Click="OnSubtitleMenu" ToolTip="Subtitles (C turns them on/off)" Visibility="{Binding HasSubtitles, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon x:Name="SubtitleIcon" Symbol="ClosedCaption24" FontSize="20" /></Button>
             <Button x:Name="SpeedButton" Style="{StaticResource PlayerButton}" Click="OnSpeedMenu" ToolTip="Playback speed ([ slower · ] faster · \ normal)" Visibility="{Binding State.IsSeekable, Converter={StaticResource BoolToVisibility}}"><ui:SymbolIcon Symbol="TopSpeed24" FontSize="20" /></Button>
             <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleStatsCommand}" ToolTip="Stats for nerds (I)"><ui:SymbolIcon Symbol="Info24" FontSize="20" /></Button>
+            <Button Style="{StaticResource PlayerButton}" Command="{Binding TogglePictureInPictureCommand}" ToolTip="Picture in picture (P)"><ui:SymbolIcon Symbol="PictureInPictureEnter24" FontSize="20" /></Button>
             <Button Style="{StaticResource PlayerButton}" Command="{Binding ToggleFullScreenCommand}" ToolTip="Full screen (F)"><ui:SymbolIcon Symbol="FullScreenMaximize24" FontSize="20" /></Button>
           </StackPanel>
           <Border />
         </DockPanel>
       </StackPanel>
     </Border>
+
+    <!-- ================================ mini player (picture in picture): drag anywhere to move, double-click to go back -->
+    <Grid x:Name="MiniBar" Style="{StaticResource Chrome}" Visibility="{Binding IsPictureInPicture, Converter={StaticResource BoolToVisibility}}">
+      <Border VerticalAlignment="Top" Height="56" IsHitTestVisible="False">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="#B0000000" />
+            <GradientStop Offset="1" Color="#00000000" />
+          </LinearGradientBrush>
+        </Border.Background>
+      </Border>
+      <DockPanel Margin="10,6,6,0" VerticalAlignment="Top">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Style="{StaticResource PlayerButton}" Width="32" Height="32" Command="{Binding TogglePictureInPictureCommand}" ToolTip="Back to the full player (P)"><ui:SymbolIcon Symbol="PictureInPictureExit24" FontSize="18" /></Button>
+          <Button Style="{StaticResource PlayerButton}" Width="32" Height="32" Command="{Binding CloseCommand}" ToolTip="Stop and close"><ui:SymbolIcon Symbol="Dismiss24" FontSize="16" /></Button>
+        </StackPanel>
+        <TextBlock VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Text="{Binding Title}" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" />
+      </DockPanel>
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+        <Button Style="{StaticResource PlayerButton}" Command="{Binding PreviousCommand}" ToolTip="Previous" IsEnabled="{Binding State.CanGoPrevious}"><ui:SymbolIcon Symbol="Previous24" Filled="True" FontSize="18" /></Button>
+        <Button Style="{StaticResource PlayerButton}" Width="48" Height="48" Margin="8,0" Background="#59000000" Command="{Binding TogglePauseCommand}" ToolTip="Play/Pause">
+          <ui:SymbolIcon x:Name="MiniPlayIcon" Symbol="Pause24" Filled="True" FontSize="26" />
+        </Button>
+        <Button Style="{StaticResource PlayerButton}" Command="{Binding NextCommand}" ToolTip="Next" IsEnabled="{Binding State.CanGoNext}"><ui:SymbolIcon Symbol="Next24" Filled="True" FontSize="18" /></Button>
+      </StackPanel>
+    </Grid>
 
     <!-- ================================ list panel -->
     <Border x:Name="ListPanel" Width="340" Margin="0,90,24,110" Padding="16" HorizontalAlignment="Right" Background="{StaticResource Glass}" BorderBrush="{StaticResource GlassStroke}" BorderThickness="1" CornerRadius="18" Visibility="{Binding ListVisible, Converter={StaticResource BoolToVisibility}}">

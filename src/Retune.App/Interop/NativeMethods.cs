@@ -22,8 +22,39 @@ internal static partial class NativeMethods
 
     internal const int WmSetFocus = 0x0007;
     internal const int WmGetObject = 0x003D;
+    internal const int WmActivate = 0x0006;
+    internal const int WmActivateApp = 0x001C;
+    internal const int WmSettingChange = 0x001A;
+    internal const int WmMouseActivate = 0x0021;
+    internal const int WmNcActivate = 0x0086;
+    internal const int WmThemeChanged = 0x031A;
+    internal const int WmDwmCompositionChanged = 0x031E;
+    internal const int WmDwmColorizationColorChanged = 0x0320;
+    internal const int MaNoActivate = 3;
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetWindowRect(nint hwnd, out Rect rect);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    internal static partial uint GetWindowThreadProcessId(nint hwnd, out uint processId);
+
+    /// <summary>
+    /// Whether a window of this process is the one Windows has in front. WPF's Window.IsActive can read true again
+    /// right after the user switched away (the video engine's window thread re-activates it inside the app), so
+    /// decisions about "the user left / came back" ask Windows instead.
+    /// </summary>
+    internal static bool IsThisAppInFront()
+    {
+        var front = GetForegroundWindow();
+        return front != 0 && GetWindowThreadProcessId(front, out var pid) != 0 && pid == (uint)Environment.ProcessId;
+    }
 
     internal static readonly nint HwndTop = 0;
+    internal static readonly nint HwndTopmost = -1;
 
     [LibraryImport("user32.dll", EntryPoint = "CreateWindowExW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     internal static partial nint CreateWindowEx(
@@ -123,6 +154,56 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetCursorPos(out CursorPoint point);
+
+    /// <summary>
+    /// Where a window is, exactly as Windows records it (normal bounds, maximised or not), so it can be put back later
+    /// without being activated. Opaque outside this class.
+    /// </summary>
+    internal readonly struct SavedPlacement
+    {
+        private readonly NativeWindowPlacement _value;
+
+        private SavedPlacement(NativeWindowPlacement value) => _value = value;
+
+        public bool IsMaximized => _value.ShowCmd == SwShowMaximized || (_value.ShowCmd == SwShowMinimized && (_value.Flags & RestoreToMaximized) != 0);
+
+        public static SavedPlacement? Capture(nint hwnd)
+        {
+            var wp = new NativeWindowPlacement { Length = Marshal.SizeOf<NativeWindowPlacement>() };
+            return hwnd != 0 && GetWindowPlacement(hwnd, ref wp) ? new SavedPlacement(wp) : null;
+        }
+
+        /// <summary>
+        /// Puts the window back. Restoring a normal window never activates it; restoring a maximised one does (Windows
+        /// has no "maximise without activating"), so callers do that only when Retune is in front or about to be.
+        /// With <paramref name="minimized"/> the window goes to the taskbar instead, still remembering to come back
+        /// maximised, and is not activated either way.
+        /// </summary>
+        public void Restore(nint hwnd, bool minimized)
+        {
+            var wp = _value;
+            wp.Length = Marshal.SizeOf<NativeWindowPlacement>();
+            var maximized = IsMaximized;
+            wp.Flags = maximized ? RestoreToMaximized : 0;
+            wp.ShowCmd = minimized ? SwShowMinNoActive : maximized ? SwShowMaximized : SwShowNoActivate;
+            _ = SetWindowPlacement(hwnd, ref wp);
+        }
+
+        /// <summary>Un-maximises (or shows) the window at its normal bounds without activating it.</summary>
+        public static void ShowNormalWithoutActivating(nint hwnd)
+        {
+            var wp = new NativeWindowPlacement { Length = Marshal.SizeOf<NativeWindowPlacement>() };
+            if (GetWindowPlacement(hwnd, ref wp))
+            {
+                wp.Flags = 0;
+                wp.ShowCmd = SwShowNoActivate;
+                _ = SetWindowPlacement(hwnd, ref wp);
+            }
+        }
+    }
+
+    private const int SwShowNoActivate = 4;
+    private const int SwShowMinNoActive = 7;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeWindowPlacement

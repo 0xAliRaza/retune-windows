@@ -360,6 +360,7 @@ Handled by a key monitor on the main window while the player is presented. Event
 | M | M | Mute toggle | yes | yes | "Muted" / "Sound on" |
 | C | C | Subtitles on/off (restores last used track, else first) | yes | yes | "Subtitles on" / "Subtitles off" / "No subtitles in this stream" |
 | F (or double-click video) | F, F11, double-click | Full screen toggle | yes | yes | — |
+| — | P | Picture in picture toggle (Windows addition, §4.13a) | yes | yes | — |
 | I | I | Stats overlay toggle | yes | yes | — |
 | S | S (avoid Ctrl+S) | Screenshot | yes | yes | "Screenshot saved to Desktop" / "Couldn't save the screenshot" |
 | ? | ? (Shift+/) and F1 | Keyboard Shortcuts sheet | yes | yes | — |
@@ -526,7 +527,7 @@ Layer order (bottom → top): black background; video; status overlay (error / t
 - Live: channel logo 64×40 fitted (160 px).
 - Line 1 (spacing 8): red "LIVE" pill (caption2 heavy, radius 4) for live; title (title3 semibold, 1 line); quality badge ("4K", "1440p", "1080p", "720p", "SD"; caption2 bold, 1 pt white-70% outline, radius 4) once the video size is known; orange "No audio in this stream" label with speaker-slash icon (tooltip "The provider is sending this channel without a sound track.").
 - Line 2: when EPG is available: "Now: <title> · <start> – <end>" (callout) and "Next: <title> at <time>" (caption, white 70%). Otherwise the item subtitle (callout, white 80%).
-- Right: list button (only if queue > 1; tooltip "Channel list (L)" for live, "Up next (L)" otherwise), chevron-down close button (tooltip "Back to browsing (Esc)").
+- Right: favourite star (Windows addition; only while the item can be a favourite: the channel, the movie, or an episode's series), filled yellow when it is a favourite, tooltip "Add to Favorites" / "Remove from Favorites", flash "Added to Favorites" / "Removed from Favorites"; then the list button (live: always, even for a one-channel list such as a single favourite; on demand: only if queue > 1; tooltip "Channel list (L)" for live, "Up next (L)" otherwise), chevron-down close button (tooltip "Back to browsing (Esc)").
 
 Quality thresholds: 4K if w ≥ 3200 or h ≥ 2000; 1440p if w ≥ 2200 or h ≥ 1400; 1080p if w ≥ 1700 or h ≥ 1000; 720p if w ≥ 1200 or h ≥ 700; else SD.
 
@@ -658,6 +659,14 @@ For Xtream channels the short EPG (limit 4) is fetched when the channel begins. 
 - F, the bottom-bar button, or double-clicking the video toggles the window's full screen.
 - The player remembers whether it entered full screen; on close it leaves full screen only in that case.
 - Windows: borderless, maximised over the monitor (incl. taskbar) via `WindowStyle=None` + `WindowState=Maximized` (or `AppWindow` full-screen presenter); restore previous bounds/state on exit. Also allow F11 and Esc-to-exit-player semantics as above.
+- Windows 11 puts the 1-pixel window border back when the window is activated again (Alt+Tab) or the theme changes, so the borderless edge is re-applied after each of those.
+
+### 4.13a Picture in picture (Windows addition)
+
+- P, the bottom-bar button (tooltip "Picture in picture (P)") or the right-click menu shrinks the main window into a 480×270 (16:9, DPI-scaled) always-on-top mini player in the bottom-right corner of its screen's work area (16 px margin, at most half the screen's width). The one video window moves with it, so playback continues untouched. Full screen is left first and comes back afterwards.
+- The mini player shows only its own chrome (auto-hiding like the rest): title, "Back to the full player (P)", "Stop and close", and previous / play-pause / next. Panels (list, stats, shortcuts) close. Drag anywhere to move it; a click pauses; a double-click (or P, Esc, F) goes back. Clicks don't activate the window, so the app the user switched to keeps the keyboard.
+- **Switching apps**: with the setting "Picture in picture when switching apps" (on by default; in Settings and as a checkable item in the player's right-click menu) the mini player opens when Retune loses focus while something plays (not when paused, ended, failed, or minimised by the user). Coming back to Retune (Alt+Tab, taskbar) closes a mini player opened this way; one opened by hand stays.
+- Closing the player from the mini player while another app is in front restores the window's layout and minimises it, so it doesn't land on top of that app.
 
 ### 4.14 Screenshots
 
@@ -845,7 +854,7 @@ Windows suggestions: the same flags in Debug configuration only (`#if DEBUG`); l
 9. **`?` outside the player**: README claims it works app-wide; macOS only handles it in the player. Make it app-wide on Windows (when no text field is focused)?
 10. **PIN brute force**: no attempt limit exists. Add a short lockout after N wrong attempts?
 11. **Settings window vs in-app page**: separate window (parity) or a Settings page/dialog in the main window? (PIN sheet ownership depends on it.)
-12. **Picture in Picture / mini player** (not on macOS): out of scope for parity, but WPF makes a compact always-on-top mode cheap. Defer?
+12. **Picture in Picture / mini player** (not on macOS): decided 2026-11-09, built as §4.13a.
 13. **Grid favourite icon** inconsistency (heart on posters, star in lists and channel tiles): keep or unify on Windows?
 14. **Trackpad back gesture**: worth implementing precision-touchpad horizontal swipe, or rely on mouse Back button and Alt+←?
 15. **Single instance**: macOS has one main window by design. Enforce single instance on Windows (second launch activates the first) via a named mutex?
